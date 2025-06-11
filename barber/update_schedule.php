@@ -99,8 +99,8 @@ try {
         }
 
         $schedule[$day] = [
-            'start' => $dayData['start'],
-            'end' => $dayData['end'],
+            'start_time' => $dayData['start'],
+            'end_time' => $dayData['end'],
             'status' => $dayData['status']
         ];
     }
