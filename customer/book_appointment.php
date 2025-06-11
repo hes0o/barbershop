@@ -116,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_W
         );
 
         if (!$result) {
+            error_log("Failed to create appointment. Database error: " . $db->getConnection()->error);
             throw new Exception('Unable to book appointment. Please try again.');
         }
 
@@ -382,6 +383,12 @@ $working_hours = $db->getWorkingHours();
             return;
         }
 
+        // Show loading state
+        const confirmButton = document.querySelector('#bookingSummary button');
+        const originalText = confirmButton.innerHTML;
+        confirmButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Booking...';
+        confirmButton.disabled = true;
+
         fetch('book_appointment.php', {
             method: 'POST',
             headers: {
@@ -394,18 +401,28 @@ $working_hours = $db->getWorkingHours();
                 time: selectedTime
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 alert('Appointment booked successfully!');
                 window.location.href = 'dashboard.php';
             } else {
-                alert('Error: ' + (data.error || data.message));
+                throw new Error(data.error || data.message || 'Failed to book appointment');
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while booking your appointment.');
+            console.error('Booking error:', error);
+            alert('Error: ' + error.message);
+        })
+        .finally(() => {
+            // Reset button state
+            confirmButton.innerHTML = originalText;
+            confirmButton.disabled = false;
         });
     }
     </script>
