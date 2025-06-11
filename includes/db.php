@@ -865,8 +865,8 @@ class Database {
                     $insertStmt->bind_param("issss", 
                         $barber_id,
                         $day,
-                        $data['start'],
-                        $data['end'],
+                        $data['start_time'],
+                        $data['end_time'],
                         $data['status']
                     );
                     
