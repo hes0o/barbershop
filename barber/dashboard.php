@@ -238,13 +238,11 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                                     <select class="form-select" name="schedule[<?php echo $dayLower; ?>][start_time]" required>
                                                         <option value="">Select time</option>
                                                         <?php
-                                                        // Generate time slots for 24 hours in 30-minute intervals
+                                                        // Generate time slots for 24 hours in hourly intervals
                                                         for ($h = 0; $h < 24; $h++) {
-                                                            for ($m = 0; $m < 60; $m += 30) {
-                                                                $time = sprintf('%02d:%02d', $h, $m);
-                                                                $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
-                                                                echo "<option value=\"$time\" $selected>$time</option>";
-                                                            }
+                                                            $time = sprintf('%02d:00', $h);
+                                                            $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
+                                                            echo "<option value=\"$time\" $selected>$time</option>";
                                                         }
                                                         ?>
                                                     </select>
@@ -256,13 +254,11 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                                     <select class="form-select" name="schedule[<?php echo $dayLower; ?>][end_time]" required>
                                                         <option value="">Select time</option>
                                                         <?php
-                                                        // Generate time slots for 24 hours in 30-minute intervals
+                                                        // Generate time slots for 24 hours in hourly intervals
                                                         for ($h = 0; $h < 24; $h++) {
-                                                            for ($m = 0; $m < 60; $m += 30) {
-                                                                $time = sprintf('%02d:%02d', $h, $m);
-                                                                $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
-                                                                echo "<option value=\"$time\" $selected>$time</option>";
-                                                            }
+                                                            $time = sprintf('%02d:00', $h);
+                                                            $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
+                                                            echo "<option value=\"$time\" $selected>$time</option>";
                                                         }
                                                         ?>
                                                     </select>
