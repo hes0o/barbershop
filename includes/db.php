@@ -608,6 +608,12 @@ class Database {
                 FROM barber_schedule 
                 WHERE barber_id = ? AND day_of_week = ?
             ");
+            
+            if ($stmt === false) {
+                error_log("Error preparing barber schedule statement: " . $this->conn->error);
+                return false;
+            }
+            
             $stmt->bind_param("is", $barber_id, $day_name);
             $stmt->execute();
             
@@ -620,6 +626,7 @@ class Database {
             // Check if schedule exists
             if ($stmt->fetch()) {
                 if ($status === 'unavailable') {
+                    $stmt->close();
                     return false;
                 }
                 
@@ -629,16 +636,25 @@ class Database {
                 
                 // Check if time is within schedule
                 if ($appointment_time < $start_time_ts || $appointment_time >= $end_time_ts) {
+                    $stmt->close();
                     return false;
                 }
             } else {
                 // If no schedule is set, check working hours
                 $day_of_week = date('N', strtotime($date));
+                $stmt->close();
+                
                 $stmt = $this->conn->prepare("
                     SELECT open_time, close_time, is_working 
                     FROM working_hours 
                     WHERE day_of_week = ?
                 ");
+                
+                if ($stmt === false) {
+                    error_log("Error preparing working hours statement: " . $this->conn->error);
+                    return false;
+                }
+                
                 $stmt->bind_param("i", $day_of_week);
                 $stmt->execute();
                 
@@ -649,6 +665,7 @@ class Database {
                 $stmt->bind_result($open_time, $close_time, $is_working);
                 
                 if (!$stmt->fetch() || !$is_working) {
+                    $stmt->close();
                     return false;
                 }
                 
@@ -658,9 +675,12 @@ class Database {
                 
                 // Check if time is within working hours
                 if ($appointment_time < $start_time_ts || $appointment_time >= $end_time_ts) {
+                    $stmt->close();
                     return false;
                 }
             }
+            
+            $stmt->close();
             
             // Check for existing appointments
             $stmt = $this->conn->prepare("
@@ -671,6 +691,12 @@ class Database {
                 AND appointment_time = ?
                 AND status != 'cancelled'
             ");
+            
+            if ($stmt === false) {
+                error_log("Error preparing appointments check statement: " . $this->conn->error);
+                return false;
+            }
+            
             $stmt->bind_param("iss", $barber_id, $date, $time);
             $stmt->execute();
             
@@ -678,6 +704,7 @@ class Database {
             $count = 0;
             $stmt->bind_result($count);
             $stmt->fetch();
+            $stmt->close();
             
             // If there's already an appointment at this time, return false
             if ($count > 0) {
