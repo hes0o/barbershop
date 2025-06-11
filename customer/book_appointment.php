@@ -27,9 +27,17 @@ try {
 
     // Create appointment
     $db = new Database();
+    
+    // Get barber first to avoid potential null reference
+    $barber = $db->getSingleBarber();
+    if (!$barber) {
+        throw new Exception('No barber available at this time');
+    }
+
+    // Create the appointment
     $result = $db->createAppointment(
         $_SESSION['user_id'],
-        $db->getSingleBarber()['id'],
+        $barber['id'],
         $data['service_id'],
         $data['date'],
         $data['time']
@@ -42,9 +50,17 @@ try {
     echo json_encode(['success' => true]);
 
 } catch (Exception $e) {
+    error_log("Booking error: " . $e->getMessage());
     http_response_code(400);
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage()
+    ]);
+} catch (Error $e) {
+    error_log("System error: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'A system error occurred. Please try again.'
     ]);
 } 
