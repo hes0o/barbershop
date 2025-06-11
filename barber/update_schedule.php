@@ -81,13 +81,13 @@ try {
         error_log("Processing day $day: " . print_r($dayData, true));
         
         // Validate required fields
-        if (!isset($dayData['start']) || !isset($dayData['end']) || !isset($dayData['status'])) {
+        if (!isset($dayData['start_time']) || !isset($dayData['end_time']) || !isset($dayData['status'])) {
             throw new Exception("Missing required fields for $day");
         }
 
         // Validate time format
-        if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $dayData['start']) || 
-            !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $dayData['end'])) {
+        if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $dayData['start_time']) || 
+            !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $dayData['end_time'])) {
             throw new Exception("Invalid time format for $day");
         }
 
@@ -97,8 +97,8 @@ try {
         }
 
         $schedule[$day] = [
-            'start_time' => $dayData['start'],
-            'end_time' => $dayData['end'],
+            'start_time' => $dayData['start_time'],
+            'end_time' => $dayData['end_time'],
             'status' => $dayData['status']
         ];
     }
