@@ -34,8 +34,7 @@ $stmt->execute();
 
 // Bind the result variables
 $stmt->bind_result(
-    $id, $username, $email, $password, $role, $phone,
-    $total_appointments, $last_visit
+    $id, $username, $email, $password, $role, $phone, $created_at, $total_appointments, $last_visit
 );
 
 // Fetch the result
