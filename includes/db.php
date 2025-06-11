@@ -842,18 +842,27 @@ class Database {
 
     public function authenticateUser($email, $password, $role) {
         try {
-            $stmt = $this->conn->prepare("SELECT * FROM users WHERE email = ? AND role = ?");
+            $stmt = $this->conn->prepare("SELECT id, username, email, password, role FROM users WHERE email = ? AND role = ?");
             if (!$stmt) {
                 error_log("Error preparing authenticateUser statement: " . $this->conn->error);
                 return false;
             }
             $stmt->bind_param("ss", $email, $role);
             $stmt->execute();
-            $result = $stmt->get_result();
-            $user = $result->fetch_assoc();
-
-            if ($user && password_verify($password, $user['password'])) {
-                return $user;
+            
+            // Bind the result variables
+            $stmt->bind_result($id, $username, $db_email, $db_password, $db_role);
+            
+            // Fetch the result
+            if ($stmt->fetch()) {
+                if (password_verify($password, $db_password)) {
+                    return [
+                        'id' => $id,
+                        'username' => $username,
+                        'email' => $db_email,
+                        'role' => $db_role
+                    ];
+                }
             }
             return false;
         } catch (Exception $e) {
