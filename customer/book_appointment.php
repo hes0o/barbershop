@@ -12,17 +12,59 @@ ini_set('log_errors', 1);
 header('Content-Type: application/json');
 
 try {
+    // Log the raw input for debugging
+    $raw_input = file_get_contents('php://input');
+    error_log("Raw input: " . $raw_input);
+
     // Basic validation
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
         throw new Exception('Please log in as a customer to book appointments');
     }
 
     // Get and validate input
-    $json = file_get_contents('php://input');
-    $data = json_decode($json, true);
+    $data = json_decode($raw_input, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception('Invalid JSON data: ' . json_last_error_msg());
+    }
 
-    if (!$data || !isset($data['service_id']) || !isset($data['date']) || !isset($data['time'])) {
-        throw new Exception('Invalid booking data');
+    if (!$data) {
+        throw new Exception('Invalid request data');
+    }
+
+    // Log the decoded data
+    error_log("Decoded data: " . print_r($data, true));
+
+    // Validate required fields
+    $required_fields = ['service_id', 'date', 'time'];
+    $missing_fields = array_filter($required_fields, function($field) use ($data) {
+        return !isset($data[$field]) || $data[$field] === '';
+    });
+
+    if (!empty($missing_fields)) {
+        throw new Exception('Missing required fields: ' . implode(', ', $missing_fields));
+    }
+
+    // Validate and sanitize input
+    $service_id = filter_var($data['service_id'], FILTER_VALIDATE_INT);
+    if ($service_id === false) {
+        throw new Exception('Invalid service selection');
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['date'])) {
+        throw new Exception('Invalid date format. Expected YYYY-MM-DD');
+    }
+
+    // Validate time format (HH:MM)
+    if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $data['time'])) {
+        throw new Exception('Invalid time format. Expected HH:MM');
+    }
+
+    // Validate date is not in the past
+    $appointment_date = strtotime($data['date']);
+    $today = strtotime('today');
+    if ($appointment_date < $today) {
+        throw new Exception('Cannot book appointments in the past');
     }
 
     // Create appointment
@@ -35,7 +77,7 @@ try {
     }
 
     // Validate service exists
-    $service = $db->getServiceById($data['service_id']);
+    $service = $db->getServiceById($service_id);
     if (!$service) {
         throw new Exception('Selected service is not available');
     }
@@ -49,7 +91,7 @@ try {
     $result = $db->createAppointment(
         $_SESSION['user_id'],
         $barber['id'],
-        $data['service_id'],
+        $service_id,
         $data['date'],
         $data['time']
     );
