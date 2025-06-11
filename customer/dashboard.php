@@ -13,6 +13,9 @@ $db = new Database();
 $message = '';
 $error = '';
 
+// Debug: Log the session user_id
+error_log('Dashboard: user_id in session: ' . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set'));
+
 // Get customer information
 $stmt = $db->getConnection()->prepare("
     SELECT u.*, 
@@ -32,6 +35,11 @@ if ($stmt === false) {
 $stmt->bind_param("i", $_SESSION['user_id']);
 $stmt->execute();
 
+// Debug: Log any SQL errors
+if ($stmt->error) {
+    error_log('Dashboard: SQL error: ' . $stmt->error);
+}
+
 // Bind the result variables
 $stmt->bind_result(
     $id, $username, $email, $password, $role, $phone, $created_at, $total_appointments, $last_visit
@@ -49,8 +57,8 @@ if ($stmt->fetch()) {
         'last_visit' => $last_visit
     ];
 } else {
-    error_log("No customer found for user_id: " . $_SESSION['user_id']);
-    die("Customer information not found.");
+    error_log("Dashboard: No customer found for user_id: " . $_SESSION['user_id']);
+    die("Customer information not found. Please check if your account exists or contact support.");
 }
 
 $stmt->close();
