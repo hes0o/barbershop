@@ -16,17 +16,14 @@ $error = '';
 // Debug: Log the session user_id
 error_log('Dashboard: user_id in session: ' . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'not set'));
 
-// Get customer information
-$stmt = $db->getConnection()->prepare("
-    SELECT u.*, 
-           COUNT(a.id) as total_appointments,
-           MAX(a.appointment_date) as last_visit
-    FROM users u
-    LEFT JOIN appointments a ON u.id = a.user_id
-    WHERE u.id = ?
-    GROUP BY u.id
-");
+// Debug: Log the session contents
+error_log('Dashboard: SESSION = ' . print_r($_SESSION, true));
 
+// Prepare the SQL and log it
+$sql = "SELECT u.*, COUNT(a.id) as total_appointments, MAX(a.appointment_date) as last_visit FROM users u LEFT JOIN appointments a ON u.id = a.user_id WHERE u.id = ? GROUP BY u.id";
+error_log('Dashboard: SQL = ' . $sql . ' [user_id=' . ($_SESSION['user_id'] ?? 'not set') . ']');
+
+$stmt = $db->getConnection()->prepare($sql);
 if ($stmt === false) {
     error_log("Error preparing customer query: " . $db->getConnection()->error);
     die("An error occurred. Please try again later.");
@@ -58,7 +55,12 @@ if ($stmt->fetch()) {
     ];
 } else {
     error_log("Dashboard: No customer found for user_id: " . $_SESSION['user_id']);
-    die("Customer information not found. Please check if your account exists or contact support.");
+    echo '<div style="margin:2em auto;max-width:500px;text-align:center;">';
+    echo '<h2>Customer information not found.</h2>';
+    echo '<p>Your account could not be found. Please <a href="../logout.php">log out</a> and try logging in again.</p>';
+    echo '<pre>Session: ' . htmlspecialchars(print_r($_SESSION, true)) . '</pre>';
+    echo '</div>';
+    exit;
 }
 
 $stmt->close();
