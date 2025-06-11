@@ -907,8 +907,8 @@ class Database {
             
             while ($row = $result->fetch_assoc()) {
                 $schedule[$row['day_of_week']] = [
-                    'start' => $row['start_time'],
-                    'end' => $row['end_time'],
+                    'start_time' => $row['start_time'],
+                    'end_time' => $row['end_time'],
                     'status' => $row['status']
                 ];
             }
@@ -919,8 +919,8 @@ class Database {
                 foreach ($days as $day) {
                     if (!isset($schedule[$day])) {
                         $schedule[$day] = [
-                            'start' => '09:00',
-                            'end' => '17:00',
+                            'start_time' => '09:00',
+                            'end_time' => '17:00',
                             'status' => 'available'
                         ];
                     }
