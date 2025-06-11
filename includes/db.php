@@ -278,7 +278,12 @@ class Database {
             $stmt = $this->conn->prepare("SELECT id FROM users WHERE id = ? AND role = 'customer'");
             $stmt->bind_param("i", $user_id);
             $stmt->execute();
-            $user = $stmt->get_result()->fetch_assoc();
+            $stmt->bind_result($found_id);
+            $user = null;
+            if ($stmt->fetch()) {
+                $user = ['id' => $found_id];
+            }
+            $stmt->close();
             
             if (!$user) {
                 error_log("Error: User $user_id not found or not a customer");

@@ -1,5 +1,5 @@
 <?php
-// test_booking.php - Standalone backend test for booking logic
+// test_booking.php - Enhanced backend test for booking logic
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -13,23 +13,40 @@ function output($label, $value) {
     echo "</pre>\n";
 }
 
-echo "<h2>Booking Backend Test</h2>";
+echo "<h2>Booking Backend Test (Detailed)</h2>";
 
 try {
-    $db = new Database();
+    // 0. Show session data
+    output('Session Data', $_SESSION);
 
-    // 1. Get first customer
-    $stmt = $db->getConnection()->prepare("SELECT id, username FROM users WHERE role = 'customer' LIMIT 1");
+    // 1. Test DB connection
+    $db = new Database();
+    $conn = $db->getConnection();
+    output('Database Connection', $conn ? 'Connected' : 'Not Connected');
+    output('DB Host', DB_HOST);
+    output('DB User', DB_USER);
+    output('DB Name', DB_NAME);
+
+    // 2. Show row counts for all relevant tables
+    $tables = ['users', 'barbers', 'services', 'appointments', 'barber_availability', 'working_hours'];
+    foreach ($tables as $table) {
+        $result = $conn->query("SELECT COUNT(*) as count FROM $table");
+        $count = $result ? $result->fetch_assoc()['count'] : 'ERROR';
+        output("Row count in $table", $count);
+    }
+
+    // 3. Get first customer
+    $stmt = $conn->prepare("SELECT id, username, role FROM users WHERE role = 'customer' LIMIT 1");
     $stmt->execute();
-    $stmt->bind_result($user_id, $username);
+    $stmt->bind_result($user_id, $username, $role);
     if (!$stmt->fetch()) {
         throw new Exception('No customer found in database.');
     }
     $stmt->close();
-    output('Test Customer', [ 'id' => $user_id, 'username' => $username ]);
+    output('Test Customer', [ 'id' => $user_id, 'username' => $username, 'role' => $role ]);
 
-    // 2. Get first service
-    $stmt = $db->getConnection()->prepare("SELECT id, name FROM services LIMIT 1");
+    // 4. Get first service
+    $stmt = $conn->prepare("SELECT id, name FROM services LIMIT 1");
     $stmt->execute();
     $stmt->bind_result($service_id, $service_name);
     if (!$stmt->fetch()) {
@@ -38,8 +55,8 @@ try {
     $stmt->close();
     output('Test Service', [ 'id' => $service_id, 'name' => $service_name ]);
 
-    // 3. Get first barber
-    $stmt = $db->getConnection()->prepare("SELECT b.id, u.username FROM barbers b JOIN users u ON b.user_id = u.id LIMIT 1");
+    // 5. Get first barber
+    $stmt = $conn->prepare("SELECT b.id, u.username FROM barbers b JOIN users u ON b.user_id = u.id LIMIT 1");
     $stmt->execute();
     $stmt->bind_result($barber_id, $barber_name);
     if (!$stmt->fetch()) {
@@ -48,22 +65,26 @@ try {
     $stmt->close();
     output('Test Barber', [ 'id' => $barber_id, 'name' => $barber_name ]);
 
-    // 4. Use today's date and 10:00 as time
+    // 6. Use today's date and 10:00 as time
     $date = date('Y-m-d');
     $time = '10:00';
     output('Test Date/Time', [ 'date' => $date, 'time' => $time ]);
 
-    // 5. Check service exists
+    // 7. Check service exists
     $service = $db->getServiceById($service_id);
-    output('Service Exists', $service ? 'Yes' : 'No');
+    output('Service Exists', $service ? $service : 'No');
     if (!$service) throw new Exception('Service does not exist.');
 
-    // 6. Check barber availability
+    // 8. Check barber availability
     $is_available = $db->isBarberAvailable($barber_id, $date, $time);
     output('Barber Available', $is_available ? 'Yes' : 'No');
+    
+    // 9. Show barber availability details
+    $availability = $db->getBarberAvailability($barber_id, $date);
+    output('Barber Availability Details', $availability);
     if (!$is_available) throw new Exception('Barber is not available at this time.');
 
-    // 7. Attempt to create appointment
+    // 10. Attempt to create appointment
     $result = $db->createAppointment($user_id, $barber_id, $service_id, $date, $time);
     output('Appointment Creation Result', $result ? 'Success' : 'Failed');
     if (!$result) throw new Exception('Failed to create appointment. Check PHP error log for details.');
@@ -72,4 +93,5 @@ try {
 
 } catch (Exception $e) {
     echo '<h3 style="color:red;">Test Failed: ' . htmlspecialchars($e->getMessage()) . '</h3>';
+    echo '<pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
 } 
