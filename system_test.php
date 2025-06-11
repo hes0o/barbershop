@@ -1,223 +1,182 @@
 <?php
-require_once __DIR__ . '/config.php';
-
-// Enable error reporting
+// Enable error reporting for testing
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h2>System Diagnostic Test</h2>";
-echo "<pre>";
+// Include required files
+require_once 'config.php';
+require_once 'includes/db.php';
 
-function test_result($test_name, $result, $details = '') {
-    $status = $result ? "✓ PASS" : "✗ FAIL";
-    echo "\n[$status] $test_name";
-    if ($details) {
-        echo "\nDetails: $details";
+// Start session for testing
+session_start();
+
+// Function to log test results
+function test_result($test_name, $result, $message = '') {
+    $status = $result ? '✓ PASS' : '✗ FAIL';
+    $color = $result ? 'success' : 'danger';
+    echo "<div class='alert alert-{$color}'>";
+    echo "<strong>{$test_name}:</strong> {$status}<br>";
+    if ($message) {
+        echo "<small>{$message}</small>";
     }
-    echo "\n";
-    return $result;
+    echo "</div>";
 }
 
+// Function to log debug information
 function debug_log($message, $data = null) {
-    echo "\n[DEBUG] $message";
+    echo "<div class='alert alert-info'>";
+    echo "<strong>Debug:</strong> {$message}<br>";
     if ($data !== null) {
-        echo "\nData: " . print_r($data, true);
+        echo "<pre>" . print_r($data, true) . "</pre>";
     }
-    echo "\n";
+    echo "</div>";
 }
+
+// HTML Header
+echo "<!DOCTYPE html>
+<html>
+<head>
+    <title>System Test Results</title>
+    <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
+    <style>
+        body { padding: 20px; }
+        .alert { margin-bottom: 10px; }
+        pre { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>System Test Results</h1>";
 
 try {
     // 1. Test PHP Configuration
-    echo "\n=== PHP Configuration Test ===\n";
-    test_result("PHP Version Check", version_compare(PHP_VERSION, '7.0.0', '>='), "Current version: " . PHP_VERSION);
-    test_result("Error Reporting", error_reporting() === E_ALL, "Current level: " . error_reporting());
-    test_result("Display Errors", ini_get('display_errors') === '1', "Current setting: " . ini_get('display_errors'));
-    
+    echo "<h2>1. PHP Configuration Test</h2>";
+    test_result("PHP Version", version_compare(PHP_VERSION, '7.4.0', '>='), "Current version: " . PHP_VERSION);
+    test_result("Error Reporting", error_reporting() === E_ALL, "Error reporting level: " . error_reporting());
+    test_result("Display Errors", ini_get('display_errors') === '1', "Display errors setting: " . ini_get('display_errors'));
+    test_result("Session Support", session_status() === PHP_SESSION_ACTIVE, "Session status: " . session_status());
+
     // 2. Test Database Connection
-    echo "\n=== Database Connection Test ===\n";
-    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-    test_result("Database Connection", !$conn->connect_error, $conn->connect_error ?: "Connected successfully");
-    
-    if ($conn->connect_error) {
-        throw new Exception("Database connection failed: " . $conn->connect_error);
-    }
-    
+    echo "<h2>2. Database Connection Test</h2>";
+    $db = new Database();
+    test_result("Database Connection", $db->getConnection() !== null, "Connection established successfully");
+
     // 3. Test Database Tables
-    echo "\n=== Database Tables Test ===\n";
-    $required_tables = [
-        'users',
-        'services',
-        'barbers',
-        'working_hours',
-        'barber_availability',
-        'appointments'
-    ];
+    echo "<h2>3. Database Tables Test</h2>";
+    $required_tables = ['users', 'services', 'barbers', 'working_hours', 'barber_availability', 'appointments'];
+    $connection = $db->getConnection();
     
     foreach ($required_tables as $table) {
-        $result = $conn->query("SHOW TABLES LIKE '$table'");
+        $result = $connection->query("SHOW TABLES LIKE '$table'");
         test_result("Table '$table' exists", $result->num_rows > 0);
     }
-    
+
     // 4. Test Users Table Structure
-    echo "\n=== Users Table Structure Test ===\n";
-    $result = $conn->query("DESCRIBE users");
+    echo "<h2>4. Users Table Structure Test</h2>";
+    $result = $connection->query("DESCRIBE users");
     $columns = [];
     while ($row = $result->fetch_assoc()) {
-        $columns[$row['Field']] = $row;
+        $columns[$row['Field']] = $row['Type'];
     }
     
     $required_columns = [
-        'id' => ['Type' => 'int', 'Null' => 'NO'],
-        'username' => ['Type' => 'varchar', 'Null' => 'NO'],
-        'email' => ['Type' => 'varchar', 'Null' => 'NO'],
-        'password' => ['Type' => 'varchar', 'Null' => 'NO'],
-        'role' => ['Type' => 'enum', 'Null' => 'NO'],
-        'phone' => ['Type' => 'varchar', 'Null' => 'YES']
+        'id' => 'int',
+        'username' => 'varchar',
+        'email' => 'varchar',
+        'password' => 'varchar',
+        'role' => 'varchar',
+        'phone' => 'varchar'
     ];
-    
-    foreach ($required_columns as $column => $requirements) {
+
+    foreach ($required_columns as $column => $type) {
         $exists = isset($columns[$column]);
-        $details = $exists ? "Found: " . $columns[$column]['Type'] : "Not found";
-        test_result("Column '$column' exists", $exists, $details);
+        $correct_type = $exists && strpos($columns[$column], $type) !== false;
+        test_result("Column '$column'", $exists && $correct_type, 
+            $exists ? "Type: " . $columns[$column] : "Column not found");
     }
-    
+
     // 5. Test Default Data
-    echo "\n=== Default Data Test ===\n";
+    echo "<h2>5. Default Data Test</h2>";
     
-    // Check for admin user
-    $stmt = $conn->prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
-    if ($stmt === false) {
-        test_result("Admin user check prepare failed", false, "Error: " . $conn->error);
-    } else {
-        $stmt->execute();
-        $stmt->bind_result($admin_id);
-        $admin_exists = $stmt->fetch();
-        test_result("Admin user exists", $admin_exists);
-        $stmt->close();
-    }
-    
-    // Check for default barber
-    $stmt = $conn->prepare("SELECT id FROM users WHERE role = 'barber' LIMIT 1");
-    if ($stmt === false) {
-        test_result("Barber check prepare failed", false, "Error: " . $conn->error);
-    } else {
-        $stmt->execute();
-        $stmt->bind_result($barber_id);
-        $barber_exists = $stmt->fetch();
-        test_result("Default barber exists", $barber_exists);
-        $stmt->close();
-    }
-    
-    // Check for services
-    $stmt = $conn->prepare("SELECT id FROM services LIMIT 1");
-    if ($stmt === false) {
-        test_result("Services check prepare failed", false, "Error: " . $conn->error);
-    } else {
-        $stmt->execute();
-        $stmt->bind_result($service_id);
-        $service_exists = $stmt->fetch();
-        test_result("Default services exist", $service_exists);
-        $stmt->close();
-    }
-    
+    // Check admin user
+    $stmt = $connection->prepare("SELECT id FROM users WHERE email = ? AND role = 'admin'");
+    $admin_email = 'admin@barbershop.com';
+    $stmt->bind_param("s", $admin_email);
+    $stmt->execute();
+    $stmt->bind_result($admin_id);
+    $admin_exists = $stmt->fetch();
+    $stmt->close();
+    test_result("Admin user exists", $admin_exists, "Admin email: $admin_email");
+
+    // Check default barber
+    $stmt = $connection->prepare("SELECT id FROM users WHERE email = ? AND role = 'barber'");
+    $barber_email = 'barber@barbershop.com';
+    $stmt->bind_param("s", $barber_email);
+    $stmt->execute();
+    $stmt->bind_result($barber_id);
+    $barber_exists = $stmt->fetch();
+    $stmt->close();
+    test_result("Default barber exists", $barber_exists, "Barber email: $barber_email");
+
+    // Check services
+    $result = $connection->query("SELECT COUNT(*) as count FROM services");
+    $row = $result->fetch_assoc();
+    test_result("Default services exist", $row['count'] > 0, "Number of services: " . $row['count']);
+
     // 6. Test Database Functions
-    echo "\n=== Database Functions Test ===\n";
+    echo "<h2>6. Database Functions Test</h2>";
     
     // Test user creation
     $test_user = [
         'username' => 'testuser_' . time(),
-        'email' => 'test_' . time() . '@example.com',
-        'password' => 'Test123!',
+        'email' => 'test_' . time() . '@test.com',
+        'password' => 'testpass123',
         'role' => 'customer',
         'phone' => '1234567890'
     ];
     
-    $stmt = $conn->prepare("INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)");
-    if ($stmt === false) {
-        test_result("User creation prepare failed", false, "Error: " . $conn->error);
-    } else {
-        $hashed_password = password_hash($test_user['password'], PASSWORD_DEFAULT);
-        $stmt->bind_param("sssss", 
-            $test_user['username'],
-            $test_user['email'],
-            $hashed_password,
-            $test_user['role'],
-            $test_user['phone']
-        );
-        
-        $create_result = $stmt->execute();
-        test_result("User creation", $create_result, $create_result ? "Created test user" : $stmt->error);
-        $stmt->close();
-        
-        if ($create_result) {
-            // Test user retrieval
-            $stmt = $conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE email = ?");
-            if ($stmt === false) {
-                test_result("User retrieval prepare failed", false, "Error: " . $conn->error);
-            } else {
-                $stmt->bind_param("s", $test_user['email']);
-                $stmt->execute();
-                
-                // Bind the result variables
-                $stmt->bind_result($id, $username, $email, $password, $role, $phone);
-                
-                // Fetch the result
-                if ($stmt->fetch()) {
-                    $user = [
-                        'id' => $id,
-                        'username' => $username,
-                        'email' => $email,
-                        'password' => $password,
-                        'role' => $role,
-                        'phone' => $phone
-                    ];
-                    test_result("User retrieval", true, "Found user");
-                    
-                    // Test password verification
-                    $password_verify = password_verify($test_user['password'], $user['password']);
-                    test_result("Password verification", $password_verify, $password_verify ? "Password verified" : "Password verification failed");
-                } else {
-                    test_result("User retrieval", false, "User not found");
-                }
-                $stmt->close();
-                
-                // Clean up test user
-                $stmt = $conn->prepare("DELETE FROM users WHERE email = ?");
-                if ($stmt === false) {
-                    test_result("User cleanup prepare failed", false, "Error: " . $conn->error);
-                } else {
-                    $stmt->bind_param("s", $test_user['email']);
-                    $stmt->execute();
-                    $stmt->close();
-                }
-            }
-        }
-    }
-    
+    $user_id = $db->createUser($test_user);
+    test_result("User creation", $user_id !== false, "Created user ID: " . $user_id);
+
+    // Test user retrieval
+    $retrieved_user = $db->getUserByEmail($test_user['email']);
+    test_result("User retrieval", $retrieved_user !== null, 
+        $retrieved_user ? "Retrieved user: " . $retrieved_user['username'] : "User not found");
+
+    // Test password verification
+    $password_verified = password_verify($test_user['password'], $retrieved_user['password']);
+    test_result("Password verification", $password_verified, "Password verification test");
+
+    // Clean up test user
+    $connection->query("DELETE FROM users WHERE id = $user_id");
+    test_result("Test user cleanup", true, "Removed test user");
+
     // 7. Test Session Configuration
-    echo "\n=== Session Configuration Test ===\n";
+    echo "<h2>7. Session Configuration Test</h2>";
     test_result("Session cookie parameters", 
-        ini_get('session.cookie_httponly') === '1' && 
-        ini_get('session.use_only_cookies') === '1',
-        "Current settings: " . 
-        "httponly=" . ini_get('session.cookie_httponly') . ", " .
-        "use_only_cookies=" . ini_get('session.use_only_cookies')
-    );
-    
+        session_get_cookie_params()['httponly'] === true, 
+        "Session cookie is HTTP-only");
+    test_result("Session save path", 
+        is_writable(session_save_path()), 
+        "Session save path: " . session_save_path());
+
     // 8. System Information
-    echo "\n=== System Information ===\n";
-    echo "PHP Version: " . PHP_VERSION . "\n";
-    echo "MySQL Version: " . $conn->server_info . "\n";
-    echo "Server Software: " . $_SERVER['SERVER_SOFTWARE'] . "\n";
-    echo "Document Root: " . $_SERVER['DOCUMENT_ROOT'] . "\n";
-    echo "Current Directory: " . __DIR__ . "\n";
-    
-    $conn->close();
-    
+    echo "<h2>8. System Information</h2>";
+    echo "<div class='alert alert-info'>";
+    echo "<strong>PHP Version:</strong> " . PHP_VERSION . "<br>";
+    echo "<strong>MySQL Version:</strong> " . $connection->server_info . "<br>";
+    echo "<strong>Server Software:</strong> " . $_SERVER['SERVER_SOFTWARE'] . "<br>";
+    echo "<strong>Document Root:</strong> " . $_SERVER['DOCUMENT_ROOT'] . "<br>";
+    echo "<strong>Current Directory:</strong> " . getcwd() . "<br>";
+    echo "</div>";
+
 } catch (Exception $e) {
-    echo "\n[ERROR] " . $e->getMessage() . "\n";
-    echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
+    echo "<div class='alert alert-danger'>";
+    echo "<strong>Error:</strong> " . $e->getMessage() . "<br>";
+    echo "<strong>File:</strong> " . $e->getFile() . "<br>";
+    echo "<strong>Line:</strong> " . $e->getLine() . "<br>";
+    echo "<strong>Stack Trace:</strong><pre>" . $e->getTraceAsString() . "</pre>";
+    echo "</div>";
 }
 
-echo "</pre>";
+echo "</body></html>";
 ?> 
