@@ -454,14 +454,8 @@ function getStatusColor($status) {
                         </div>
                         <div class="col-md-4">
                             <label for="bookingTime" class="form-label"><i class="fas fa-clock me-1"></i> Time</label>
-                            <select class="form-select form-select-lg" id="bookingTime" name="time" required>
+                            <select class="form-select form-select-lg" id="bookingTime" name="time" required disabled>
                                 <option value="">Select a time</option>
-                                <?php
-                                for ($h = 9; $h <= 16; $h++) {
-                                    $time = sprintf('%02d:00', $h);
-                                    echo '<option value="' . $time . '">' . $time . '</option>';
-                                }
-                                ?>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -543,7 +537,52 @@ function getStatusColor($status) {
             summaryContent.innerHTML = '';
         }
     }
-    document.getElementById('bookingDate').addEventListener('change', updateBookingSummary);
+
+    // Add this new function to handle time slot loading
+    async function loadAvailableTimes(date) {
+        const timeSelect = document.getElementById('bookingTime');
+        timeSelect.disabled = true;
+        timeSelect.innerHTML = '<option value="">Loading available times...</option>';
+
+        try {
+            const response = await fetch(`get_available_times.php?date=${date}`);
+            const data = await response.json();
+
+            if (data.success) {
+                timeSelect.innerHTML = '<option value="">Select a time</option>';
+                if (data.times.length === 0) {
+                    timeSelect.innerHTML = '<option value="">No available times</option>';
+                } else {
+                    data.times.forEach(time => {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        option.textContent = time;
+                        timeSelect.appendChild(option);
+                    });
+                    timeSelect.disabled = false;
+                }
+            } else {
+                timeSelect.innerHTML = `<option value="">Error: ${data.message}</option>`;
+            }
+        } catch (error) {
+            timeSelect.innerHTML = '<option value="">Error loading times</option>';
+            console.error('Error loading times:', error);
+        }
+    }
+
+    // Update the date change handler
+    document.getElementById('bookingDate').addEventListener('change', function(e) {
+        const date = e.target.value;
+        if (date) {
+            loadAvailableTimes(date);
+        } else {
+            const timeSelect = document.getElementById('bookingTime');
+            timeSelect.innerHTML = '<option value="">Select a time</option>';
+            timeSelect.disabled = true;
+        }
+        updateBookingSummary();
+    });
+
     document.getElementById('bookingTime').addEventListener('change', updateBookingSummary);
     document.getElementById('bookingService').addEventListener('change', updateBookingSummary);
 
