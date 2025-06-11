@@ -647,7 +647,17 @@ function getStatusColor($status) {
 
     // Book Appointment
     document.getElementById('bookButton').addEventListener('click', async function() {
-        if (!selectedDate || !selectedTime || !selectedService) return;
+        if (!selectedDate || !selectedTime || !selectedService) {
+            console.error('Missing required data:', { selectedDate, selectedTime, selectedService });
+            return;
+        }
+
+        const requestData = {
+            service_id: selectedService,
+            date: selectedDate,
+            time: selectedTime
+        };
+        console.log('Sending booking request:', requestData);
 
         try {
             const response = await fetch('book_appointment.php', {
@@ -655,14 +665,12 @@ function getStatusColor($status) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    service_id: selectedService,
-                    date: selectedDate,
-                    time: selectedTime
-                })
+                body: JSON.stringify(requestData)
             });
 
+            console.log('Response status:', response.status);
             const data = await response.json();
+            console.log('Response data:', data);
             
             if (data.success) {
                 // Show success message
@@ -684,6 +692,7 @@ function getStatusColor($status) {
                 let errorMessage = data.message;
                 if (data.debug) {
                     errorMessage += `<br><small class="text-muted">Debug info: ${data.debug.file}:${data.debug.line}</small>`;
+                    console.error('Debug info:', data.debug);
                 }
                 
                 alertDiv.innerHTML = `
@@ -693,6 +702,7 @@ function getStatusColor($status) {
                 document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.booking-section'));
             }
         } catch (error) {
+            console.error('Error during booking:', error);
             // Show network or other errors
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-danger alert-dismissible fade show';
