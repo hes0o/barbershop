@@ -1,7 +1,28 @@
 <?php
+require_once 'config.php';
+require_once 'includes/db.php';
+
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Start session
 session_start();
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/includes/db.php';
+
+// Debug function
+function debug_log($message, $data = null) {
+    error_log("[LOGIN DEBUG] " . $message);
+    if ($data !== null) {
+        error_log("[LOGIN DEBUG] Data: " . print_r($data, true));
+    }
+}
+
+// Check if user is already logged in
+if (isset($_SESSION['user_id'])) {
+    debug_log("User already logged in", $_SESSION);
+    header("Location: " . ($_SESSION['role'] === 'barber' ? 'barber/dashboard.php' : 'customer/dashboard.php'));
+    exit();
+}
 
 $error = '';
 $success = '';
@@ -15,37 +36,50 @@ if (isset($_SESSION['success_message'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    debug_log("Login attempt started");
+    
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'login') {
-            $email = $_POST['email'] ?? '';
+            $email = trim($_POST['email'] ?? '');
             $password = $_POST['password'] ?? '';
             $role = $_POST['role'] ?? '';
-
-            error_log("Login attempt - Email: $email, Role: $role");
+            
+            debug_log("Login attempt details", [
+                'email' => $email,
+                'role' => $role,
+                'password_length' => strlen($password)
+            ]);
 
             if (empty($email) || empty($password) || empty($role)) {
-                $error = 'Please fill in all fields';
-                error_log("Login failed - Empty fields");
+                debug_log("Empty fields detected");
+                $error = 'All fields are required';
             } else {
                 $db = new Database();
-                $user = $db->authenticateUser($email, $password, $role);
-
-                if ($user) {
-                    error_log("Login successful for user: " . print_r($user, true));
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['role'] = $role;
-                    $_SESSION['username'] = $user['username'];
-
-                    // Redirect to appropriate dashboard
-                    if ($role === 'barber') {
-                        header('Location: barber/dashboard.php');
+                try {
+                    debug_log("Attempting to authenticate user");
+                    $user = $db->authenticateUser($email, $password, $role);
+                    
+                    if ($user) {
+                        debug_log("Authentication successful", $user);
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['email'] = $user['email'];
+                        $_SESSION['role'] = $user['role'];
+                        
+                        debug_log("Session created", $_SESSION);
+                        
+                        // Redirect based on role
+                        $redirect = $role === 'barber' ? 'barber/dashboard.php' : 'customer/dashboard.php';
+                        debug_log("Redirecting to: " . $redirect);
+                        header("Location: " . $redirect);
+                        exit();
                     } else {
-                        header('Location: customer/dashboard.php');
+                        debug_log("Authentication failed - invalid credentials");
+                        $error = 'Invalid email or password';
                     }
-                    exit;
-                } else {
-                    error_log("Login failed - Invalid credentials");
-                    $error = 'Invalid email or password';
+                } catch (Exception $e) {
+                    debug_log("Authentication error", $e->getMessage());
+                    $error = 'An error occurred during login';
                 }
             }
         } elseif ($_POST['action'] === 'register') {
@@ -94,6 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
     <style>
         :root {
             --primary-color: #2c3e50;
