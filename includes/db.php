@@ -610,18 +610,25 @@ class Database {
             ");
             $stmt->bind_param("is", $barber_id, $day_name);
             $stmt->execute();
-            $weekly_schedule = $stmt->get_result()->fetch_assoc();
             
-            if ($weekly_schedule) {
-                if ($weekly_schedule['status'] === 'unavailable') {
+            // Bind result variables
+            $start_time = null;
+            $end_time = null;
+            $status = null;
+            $stmt->bind_result($start_time, $end_time, $status);
+            
+            // Check if schedule exists
+            if ($stmt->fetch()) {
+                if ($status === 'unavailable') {
                     return false;
                 }
-                $start_time = strtotime($weekly_schedule['start_time']);
-                $end_time = strtotime($weekly_schedule['end_time']);
+                
+                $start_time_ts = strtotime($start_time);
+                $end_time_ts = strtotime($end_time);
                 $appointment_time = strtotime($time);
                 
                 // Check if time is within schedule
-                if ($appointment_time < $start_time || $appointment_time >= $end_time) {
+                if ($appointment_time < $start_time_ts || $appointment_time >= $end_time_ts) {
                     return false;
                 }
             } else {
@@ -634,18 +641,23 @@ class Database {
                 ");
                 $stmt->bind_param("i", $day_of_week);
                 $stmt->execute();
-                $working_hours = $stmt->get_result()->fetch_assoc();
                 
-                if (!$working_hours || !$working_hours['is_working']) {
+                // Bind result variables for working hours
+                $open_time = null;
+                $close_time = null;
+                $is_working = null;
+                $stmt->bind_result($open_time, $close_time, $is_working);
+                
+                if (!$stmt->fetch() || !$is_working) {
                     return false;
                 }
                 
-                $start_time = strtotime($working_hours['open_time']);
-                $end_time = strtotime($working_hours['close_time']);
+                $start_time_ts = strtotime($open_time);
+                $end_time_ts = strtotime($close_time);
                 $appointment_time = strtotime($time);
                 
                 // Check if time is within working hours
-                if ($appointment_time < $start_time || $appointment_time >= $end_time) {
+                if ($appointment_time < $start_time_ts || $appointment_time >= $end_time_ts) {
                     return false;
                 }
             }
@@ -661,10 +673,14 @@ class Database {
             ");
             $stmt->bind_param("iss", $barber_id, $date, $time);
             $stmt->execute();
-            $result = $stmt->get_result()->fetch_assoc();
+            
+            // Bind result variable for count
+            $count = 0;
+            $stmt->bind_result($count);
+            $stmt->fetch();
             
             // If there's already an appointment at this time, return false
-            if ($result['count'] > 0) {
+            if ($count > 0) {
                 return false;
             }
             
