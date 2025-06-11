@@ -602,26 +602,6 @@ class Database {
             // Get the day of week
             $day_name = strtolower(date('l', strtotime($date)));
             
-            // Check specific date override first
-            $stmt = $this->conn->prepare("
-                SELECT start_time, end_time, status 
-                FROM barber_schedule_override 
-                WHERE barber_id = ? AND date = ?
-            ");
-            $stmt->bind_param("is", $barber_id, $date);
-            $stmt->execute();
-            $date_override = $stmt->get_result()->fetch_assoc();
-            
-            if ($date_override) {
-                if ($date_override['status'] === 'unavailable') {
-                    return false;
-                }
-                $start_time = strtotime($date_override['start_time']);
-                $end_time = strtotime($date_override['end_time']);
-                $appointment_time = strtotime($time);
-                return $appointment_time >= $start_time && $appointment_time <= $end_time;
-            }
-            
             // Check weekly schedule
             $stmt = $this->conn->prepare("
                 SELECT start_time, end_time, status 
