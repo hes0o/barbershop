@@ -598,27 +598,75 @@ class Database {
     }
 
     public function isBarberAvailable($barber_id, $date, $time) {
-        // Check specific availability first
-        $availability = $this->getBarberAvailability($barber_id, $date);
-
-        if (is_array($availability) && array_key_exists('is_available', $availability)) {
-            if (!$availability['is_available']) {
+        try {
+            // Get the day of week
+            $day_name = strtolower(date('l', strtotime($date)));
+            
+            // Check specific date override first
+            $stmt = $this->conn->prepare("
+                SELECT start_time, end_time, status 
+                FROM barber_schedule_override 
+                WHERE barber_id = ? AND date = ?
+            ");
+            $stmt->bind_param("is", $barber_id, $date);
+            $stmt->execute();
+            $date_override = $stmt->get_result()->fetch_assoc();
+            
+            if ($date_override) {
+                if ($date_override['status'] === 'unavailable') {
+                    return false;
+                }
+                $start_time = strtotime($date_override['start_time']);
+                $end_time = strtotime($date_override['end_time']);
+                $appointment_time = strtotime($time);
+                return $appointment_time >= $start_time && $appointment_time <= $end_time;
+            }
+            
+            // Check weekly schedule
+            $stmt = $this->conn->prepare("
+                SELECT start_time, end_time, status 
+                FROM barber_schedule 
+                WHERE barber_id = ? AND day_of_week = ?
+            ");
+            $stmt->bind_param("is", $barber_id, $day_name);
+            $stmt->execute();
+            $weekly_schedule = $stmt->get_result()->fetch_assoc();
+            
+            if ($weekly_schedule) {
+                if ($weekly_schedule['status'] === 'unavailable') {
+                    return false;
+                }
+                $start_time = strtotime($weekly_schedule['start_time']);
+                $end_time = strtotime($weekly_schedule['end_time']);
+                $appointment_time = strtotime($time);
+                return $appointment_time >= $start_time && $appointment_time <= $end_time;
+            }
+            
+            // If no schedule is set, check working hours
+            $day_of_week = date('N', strtotime($date));
+            $stmt = $this->conn->prepare("
+                SELECT open_time, close_time, is_working 
+                FROM working_hours 
+                WHERE day_of_week = ?
+            ");
+            $stmt->bind_param("i", $day_of_week);
+            $stmt->execute();
+            $working_hours = $stmt->get_result()->fetch_assoc();
+            
+            if (!$working_hours || !$working_hours['is_working']) {
                 return false;
             }
-
-            $start_time = strtotime($availability['start_time']);
-            $end_time = strtotime($availability['end_time']);
+            
+            $start_time = strtotime($working_hours['open_time']);
+            $end_time = strtotime($working_hours['close_time']);
             $appointment_time = strtotime($time);
-
+            
             return $appointment_time >= $start_time && $appointment_time <= $end_time;
+            
+        } catch (Exception $e) {
+            error_log("Error in isBarberAvailable: " . $e->getMessage());
+            return false;
         }
-
-        // If no specific availability is set, use default hours
-        $appointment_time = strtotime($time);
-        $default_start = strtotime('09:00');
-        $default_end = strtotime('17:00');
-
-        return $appointment_time >= $default_start && $appointment_time <= $default_end;
     }
     
     public function getAllCustomers() {
@@ -841,25 +889,8 @@ class Database {
 
     public function getBarberWeeklySchedule($barber_id) {
         try {
-            // Check if table exists
-            $result = $this->conn->query("SHOW TABLES LIKE 'barber_schedule'");
-            if ($result->num_rows === 0) {
-                error_log("barber_schedule table doesn't exist, returning default schedule");
-                // Return default schedule
-                $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-                $default_schedule = [];
-                foreach ($days as $day) {
-                    $default_schedule[$day] = [
-                        'start' => '09:00',
-                        'end' => '17:00',
-                        'status' => 'available'
-                    ];
-                }
-                return $default_schedule;
-            }
-
             $stmt = $this->conn->prepare("
-                SELECT day_of_week, start_hour, end_hour, is_available
+                SELECT day_of_week, start_time, end_time, status
                 FROM barber_schedule
                 WHERE barber_id = ?
                 ORDER BY FIELD(day_of_week, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')
@@ -877,14 +908,14 @@ class Database {
                 return [];
             }
             
-            $stmt->bind_result($day_of_week, $start_hour, $end_hour, $is_available);
+            $result = $stmt->get_result();
             $schedule = [];
             
-            while ($stmt->fetch()) {
-                $schedule[$day_of_week] = [
-                    'start' => sprintf('%02d:00', $start_hour),
-                    'end' => sprintf('%02d:00', $end_hour),
-                    'status' => $is_available ? 'available' : 'unavailable'
+            while ($row = $result->fetch_assoc()) {
+                $schedule[$row['day_of_week']] = [
+                    'start' => $row['start_time'],
+                    'end' => $row['end_time'],
+                    'status' => $row['status']
                 ];
             }
             
@@ -904,6 +935,7 @@ class Database {
             
             $stmt->close();
             return $schedule;
+            
         } catch (Exception $e) {
             error_log("Error getting barber schedule: " . $e->getMessage());
             return [];

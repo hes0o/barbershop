@@ -56,20 +56,50 @@ try {
         exit;
     }
     
-    // Get barber's specific availability for this date
-    $availability = $db->getBarberAvailability($barber['id'], $date);
+    // Get barber's weekly schedule for this day
+    $day_name = strtolower(date('l', strtotime($date)));
+    $stmt = $db->getConnection()->prepare("
+        SELECT start_time, end_time, status 
+        FROM barber_schedule 
+        WHERE barber_id = ? AND day_of_week = ?
+    ");
+    $stmt->bind_param("is", $barber['id'], $day_name);
+    $stmt->execute();
+    $weekly_schedule = $stmt->get_result()->fetch_assoc();
     
-    // If barber has marked themselves as unavailable for this date
-    if ($availability && !$availability['is_available']) {
-        echo json_encode(['error' => 'Barber is not available on this date']);
-        exit;
+    // Get barber's specific availability override for this date
+    $stmt = $db->getConnection()->prepare("
+        SELECT start_time, end_time, status 
+        FROM barber_schedule_override 
+        WHERE barber_id = ? AND date = ?
+    ");
+    $stmt->bind_param("is", $barber['id'], $date);
+    $stmt->execute();
+    $date_override = $stmt->get_result()->fetch_assoc();
+    
+    // If there's a specific override for this date, use it
+    if ($date_override) {
+        if ($date_override['status'] === 'unavailable') {
+            echo json_encode(['error' => 'Barber is not available on this date']);
+            exit;
+        }
+        $start_time = $date_override['start_time'];
+        $end_time = $date_override['end_time'];
+    } 
+    // Otherwise use the weekly schedule
+    else if ($weekly_schedule) {
+        if ($weekly_schedule['status'] === 'unavailable') {
+            echo json_encode(['error' => 'Barber is not available on this day of the week']);
+            exit;
+        }
+        $start_time = $weekly_schedule['start_time'];
+        $end_time = $weekly_schedule['end_time'];
     }
-    
-    // Set time range based on availability or working hours
-    $start_time = $availability && $availability['is_available'] ? 
-                 $availability['start_time'] : $working_hours['open_time'];
-    $end_time = $availability && $availability['is_available'] ? 
-               $availability['end_time'] : $working_hours['close_time'];
+    // Fallback to working hours if no schedule is set
+    else {
+        $start_time = $working_hours['open_time'];
+        $end_time = $working_hours['close_time'];
+    }
     
     // Get all booked appointments for this date
     $stmt = $db->getConnection()->prepare("
