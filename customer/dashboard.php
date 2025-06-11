@@ -88,8 +88,9 @@ $stmt->execute();
 // Bind the result variables for appointments
 $stmt->bind_result(
     $appointment_id, $user_id, $barber_id, $service_id, $appointment_date,
-    $appointment_time, $status, $service_name, $price, $duration,
-    $barber_id, $barber_name
+    $appointment_time, $status, $notes, $created_at,
+    $service_name, $price, $duration,
+    $barber_id2, $barber_name
 );
 
 $appointments = [];
@@ -113,7 +114,7 @@ $stmt = $db->getConnection()->prepare("SELECT * FROM services ORDER BY price ASC
 $stmt->execute();
 
 // Bind the result variables for services
-$stmt->bind_result($service_id, $service_name, $service_price, $service_duration, $service_description);
+$stmt->bind_result($service_id, $service_name, $service_description, $service_price, $service_duration, $service_created_at);
 
 $services = [];
 while ($stmt->fetch()) {
