@@ -154,14 +154,30 @@ class Database {
     // Barber Operations
     public function getSingleBarber() {
         $stmt = $this->conn->prepare("
-            SELECT b.*, u.username, u.email, u.phone 
-            FROM barbers b 
-            JOIN users u ON b.user_id = u.id 
+            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.username, u.email, u.phone
+            FROM barbers b
+            JOIN users u ON b.user_id = u.id
             WHERE b.status = 'active'
             LIMIT 1
         ");
+        if (!$stmt) return false;
         $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        $stmt->bind_result($id, $user_id, $bio, $experience_years, $status, $created_at, $username, $email, $phone);
+        if ($stmt->fetch()) {
+            return [
+                'id' => $id,
+                'user_id' => $user_id,
+                'bio' => $bio,
+                'experience_years' => $experience_years,
+                'status' => $status,
+                'created_at' => $created_at,
+                'username' => $username,
+                'email' => $email,
+                'phone' => $phone
+            ];
+        }
+        $stmt->close();
+        return false;
     }
     
     public function getBarberById($id) {
