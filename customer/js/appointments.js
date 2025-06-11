@@ -12,17 +12,25 @@ async function bookAppointment(serviceId, date, time) {
             })
         });
 
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            throw new Error('Server returned invalid response');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to book appointment');
+        }
         
         if (!data.success) {
-            alert(data.error || 'Failed to book appointment');
-            return false;
+            throw new Error(data.error || 'Failed to book appointment');
         }
 
         alert('Appointment booked successfully!');
         return true;
     } catch (error) {
-        alert('Error booking appointment. Please try again.');
+        alert(error.message || 'Error booking appointment. Please try again.');
         console.error('Booking error:', error);
         return false;
     }
