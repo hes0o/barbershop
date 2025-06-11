@@ -30,13 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($user) {
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['role'] = $role;
-                    $_SESSION['name'] = $user['first_name'] . ' ' . $user['last_name'];
+                    $_SESSION['username'] = $user['username'];
 
                     // Redirect to appropriate dashboard
                     if ($role === 'barber') {
-                        header('Location: ' . BASE_URL . '/barber/dashboard.php');
+                        header('Location: barber/dashboard.php');
                     } else {
-                        header('Location: ' . BASE_URL . '/customer/dashboard.php');
+                        header('Location: customer/dashboard.php');
                     }
                     exit;
                 } else {
