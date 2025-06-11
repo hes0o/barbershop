@@ -595,24 +595,24 @@ class Database {
     public function isBarberAvailable($barber_id, $date, $time) {
         // Check specific availability first
         $availability = $this->getBarberAvailability($barber_id, $date);
-        
-        if ($availability) {
+
+        if (is_array($availability) && array_key_exists('is_available', $availability)) {
             if (!$availability['is_available']) {
                 return false;
             }
-            
+
             $start_time = strtotime($availability['start_time']);
             $end_time = strtotime($availability['end_time']);
             $appointment_time = strtotime($time);
-            
+
             return $appointment_time >= $start_time && $appointment_time <= $end_time;
         }
-        
+
         // If no specific availability is set, use default hours
         $appointment_time = strtotime($time);
         $default_start = strtotime('09:00');
         $default_end = strtotime('17:00');
-        
+
         return $appointment_time >= $default_start && $appointment_time <= $default_end;
     }
     
