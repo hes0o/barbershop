@@ -195,39 +195,23 @@ try {
 
 // Test 11: Verify Barber Schedules Data
 echo "<h3>Test 11: Verify Barber Schedules Data</h3>";
-$stmt = $db->getConnection()->prepare("SELECT * FROM barber_schedules WHERE barber_id = ?");
-if ($stmt === false) {
-    echo "<div style='color: red;'>✗ Error preparing statement: " . $db->getConnection()->error . "</div>";
-    echo "<div style='color: red;'>✗ SQL State: " . $db->getConnection()->sqlstate . "</div>";
-    echo "<div style='color: red;'>✗ Error Code: " . $db->getConnection()->errno . "</div>";
-    exit;
-}
-
-// Get the first barber's ID if not already set
-if (!isset($barber_id)) {
-    $barber = $db->getSingleBarber();
-    if ($barber) {
-        $barber_id = $barber['id'];
-    } else {
-        echo "<div style='color: red;'>✗ No barber found in the system</div>";
-        exit;
-    }
-}
-
+$stmt = $db->getConnection()->prepare("SELECT * FROM barber_schedule WHERE barber_id = ?");
 $stmt->bind_param("i", $barber_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
     echo "<div style='color: green;'>✓ Found " . $result->num_rows . " schedule entries</div>";
-    echo "<table border='1' style='margin: 10px 0;'>";
-    echo "<tr><th>Day</th><th>Start Time</th><th>End Time</th><th>Status</th></tr>";
+    echo "<table border='1' style='margin-top: 10px;'>";
+    echo "<tr><th>ID</th><th>Barber ID</th><th>Day</th><th>Start Time</th><th>End Time</th><th>Status</th></tr>";
     while ($row = $result->fetch_assoc()) {
         echo "<tr>";
-        echo "<td>" . htmlspecialchars($row['day_of_week']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['start_time']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['end_time']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['status']) . "</td>";
+        echo "<td>" . $row['id'] . "</td>";
+        echo "<td>" . $row['barber_id'] . "</td>";
+        echo "<td>" . $row['day_of_week'] . "</td>";
+        echo "<td>" . $row['start_time'] . "</td>";
+        echo "<td>" . $row['end_time'] . "</td>";
+        echo "<td>" . $row['status'] . "</td>";
         echo "</tr>";
     }
     echo "</table>";
