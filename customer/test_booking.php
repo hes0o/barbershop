@@ -4,6 +4,9 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
+// Start the session
+session_start();
+
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 
@@ -17,6 +20,12 @@ echo "<h1>Booking System Test</h1>";
 
 // Test 1: Session Check
 echo "<h2>Test 1: Session Check</h2>";
+if (empty($_SESSION)) {
+    echo "<div style='color: orange;'>⚠ No session data found. Creating test session...</div>";
+    // Create a test session
+    $_SESSION['test_mode'] = true;
+    $_SESSION['test_timestamp'] = time();
+}
 echo "Session data: <pre>" . print_r($_SESSION, true) . "</pre>";
 
 // Test 2: Database Connection
