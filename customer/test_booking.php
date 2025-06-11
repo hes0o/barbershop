@@ -195,7 +195,7 @@ try {
 
 // Test 11: Verify Barber Schedules Data
 echo "<h3>Test 11: Verify Barber Schedules Data</h3>";
-$stmt = $db->conn->prepare("SELECT * FROM barber_schedules WHERE barber_id = ?");
+$stmt = $db->getConnection()->prepare("SELECT * FROM barber_schedules WHERE barber_id = ?");
 $stmt->bind_param("i", $barber['id']);
 $stmt->execute();
 $result = $stmt->get_result();
