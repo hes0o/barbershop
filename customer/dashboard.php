@@ -663,14 +663,44 @@ function getStatusColor($status) {
             });
 
             const data = await response.json();
+            
             if (data.success) {
-                alert('Appointment booked successfully!');
-                location.reload();
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.booking-section'));
+                
+                // Reload the page after a short delay
+                setTimeout(() => location.reload(), 2000);
             } else {
-                alert(data.message || 'Failed to book appointment');
+                // Show error message with details
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                
+                let errorMessage = data.message;
+                if (data.debug) {
+                    errorMessage += `<br><small class="text-muted">Debug info: ${data.debug.file}:${data.debug.line}</small>`;
+                }
+                
+                alertDiv.innerHTML = `
+                    ${errorMessage}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.booking-section'));
             }
         } catch (error) {
-            alert('Failed to book appointment');
+            // Show network or other errors
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                Failed to book appointment. Please try again.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.booking-section'));
         }
     });
 

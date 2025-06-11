@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/error_handler.php';
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
@@ -24,51 +25,62 @@ try {
     $data = json_decode($json, true);
 
     if (!$data) {
-        throw new Exception('Invalid request data');
+        throw new Exception('Invalid request data: ' . json_last_error_msg());
     }
 
     // Validate required fields
-    if (!isset($data['service_id']) || !isset($data['date']) || !isset($data['time'])) {
-        throw new Exception('Missing required fields');
+    $required_fields = ['service_id', 'date', 'time'];
+    $missing_fields = array_filter($required_fields, function($field) use ($data) {
+        return !isset($data[$field]);
+    });
+
+    if (!empty($missing_fields)) {
+        throw new Exception('Missing required fields: ' . implode(', ', $missing_fields));
     }
 
     // Validate date format
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['date'])) {
-        throw new Exception('Invalid date format');
+        throw new Exception('Invalid date format. Expected YYYY-MM-DD, got: ' . $data['date']);
     }
 
     // Validate time format
     if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $data['time'])) {
-        throw new Exception('Invalid time format');
+        throw new Exception('Invalid time format. Expected HH:MM, got: ' . $data['time']);
     }
 
     $db = new Database();
 
-    // Get customer info - FIXED: Use the logged-in user's ID
+    // Get customer info
     $stmt = $db->getConnection()->prepare("SELECT * FROM users WHERE id = ? AND role = 'customer'");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $customer = $stmt->get_result()->fetch_assoc();
+    if (!$stmt) {
+        throw new Exception('Database error: ' . $db->getConnection()->error);
+    }
 
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    if (!$stmt->execute()) {
+        throw new Exception('Database error: ' . $stmt->error);
+    }
+
+    $customer = $stmt->get_result()->fetch_assoc();
     if (!$customer) {
-        throw new Exception('Customer not found');
+        throw new Exception('Customer not found. Please log out and log in again.');
     }
 
     // Get barber info
     $barber = $db->getSingleBarber();
     if (!$barber) {
-        throw new Exception('No barber available');
+        throw new Exception('No barber available at this time. Please try again later.');
     }
 
     // Get service info
     $service = $db->getServiceById($data['service_id']);
     if (!$service) {
-        throw new Exception('Service not found');
+        throw new Exception('Selected service is not available. Please choose a different service.');
     }
 
     // Check if the date is in the past
     if (strtotime($data['date']) < strtotime('today')) {
-        throw new Exception('Cannot book appointments in the past');
+        throw new Exception('Cannot book appointments in the past. Please select a future date.');
     }
 
     // Check if the barber is available on this day
@@ -76,7 +88,7 @@ try {
     $day_of_week = strtolower(date('l', strtotime($data['date'])));
 
     if (!isset($weekly_schedule[$day_of_week]) || $weekly_schedule[$day_of_week]['status'] !== 'available') {
-        throw new Exception('Barber is not available on this day');
+        throw new Exception('Barber is not available on ' . ucfirst($day_of_week) . '. Please select a different day.');
     }
 
     // Check if the time slot is within barber's working hours
@@ -85,7 +97,11 @@ try {
     $booking_hour = (int)date('G', strtotime($data['time']));
 
     if ($booking_hour < $start_hour || $booking_hour >= $end_hour) {
-        throw new Exception('Selected time is outside barber\'s working hours');
+        throw new Exception(sprintf(
+            'Selected time is outside barber\'s working hours. Available hours: %02d:00 - %02d:00',
+            $start_hour,
+            $end_hour
+        ));
     }
 
     // Check if the time slot is already booked
@@ -94,22 +110,21 @@ try {
         $appointment_hour = (int)date('G', strtotime($appointment['appointment_time']));
         $booking_hour = (int)date('G', strtotime($data['time']));
         
-        // Check if the booking hour is already taken
         if ($booking_hour === $appointment_hour) {
-            throw new Exception('This time slot is already booked');
+            throw new Exception('This time slot is already booked. Please select a different time.');
         }
     }
 
     // Check if customer already has an appointment at this time
-    $customer_appointments = $db->getAppointmentsByCustomer($_SESSION['user_id']); // FIXED: Use session user_id
+    $customer_appointments = $db->getAppointmentsByCustomer($_SESSION['user_id']);
     foreach ($customer_appointments as $appointment) {
         if ($appointment['appointment_date'] === $data['date'] && 
             $appointment['appointment_time'] === $data['time']) {
-            throw new Exception('You already have an appointment at this time');
+            throw new Exception('You already have an appointment at this time. Please select a different time.');
         }
     }
 
-    // Create the appointment - FIXED: Use session user_id
+    // Create the appointment
     $success = $db->createAppointment(
         $_SESSION['user_id'],
         $barber['id'],
@@ -119,7 +134,7 @@ try {
     );
 
     if (!$success) {
-        throw new Exception('Failed to create appointment');
+        throw new Exception('Failed to create appointment. Please try again.');
     }
 
     // Clear any output and send success response
@@ -130,16 +145,13 @@ try {
     ]);
 
 } catch (Exception $e) {
-    error_log("Error in book_appointment.php: " . $e->getMessage());
-    error_log("Stack trace: " . $e->getTraceAsString());
+    // Log the error using our error handler
+    $error = ErrorHandler::handleException($e);
     
     // Clear any output and send error response
     ob_clean();
     http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
+    echo json_encode(ErrorHandler::formatErrorResponse($error));
 }
 
 // End output buffering
