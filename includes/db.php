@@ -1234,5 +1234,55 @@ class Database {
         $stmt->close();
         return $result;
     }
+
+    public function getAvailableDates($barber_id, $start_date = null, $end_date = null) {
+        try {
+            // If no dates provided, default to next 30 days
+            if (!$start_date) {
+                $start_date = date('Y-m-d');
+            }
+            if (!$end_date) {
+                $end_date = date('Y-m-d', strtotime('+30 days'));
+            }
+
+            // Get barber's weekly schedule
+            $weekly_schedule = $this->getBarberWeeklySchedule($barber_id);
+            
+            // Get working hours
+            $working_hours = $this->getWorkingHours();
+            
+            $available_dates = [];
+            $current_date = new DateTime($start_date);
+            $end_datetime = new DateTime($end_date);
+            
+            while ($current_date <= $end_datetime) {
+                $day_name = strtolower($current_date->format('l'));
+                $date_str = $current_date->format('Y-m-d');
+                
+                // Check if barber has specific schedule for this day
+                if (isset($weekly_schedule[$day_name])) {
+                    if ($weekly_schedule[$day_name]['status'] === 'available') {
+                        $available_dates[] = $date_str;
+                    }
+                } else {
+                    // If no specific schedule, check working hours
+                    $day_of_week = $current_date->format('N');
+                    foreach ($working_hours as $hours) {
+                        if ($hours['day_of_week'] == $day_of_week && $hours['is_working']) {
+                            $available_dates[] = $date_str;
+                            break;
+                        }
+                    }
+                }
+                
+                $current_date->modify('+1 day');
+            }
+            
+            return $available_dates;
+        } catch (Exception $e) {
+            error_log("Error in getAvailableDates: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 ?> 
