@@ -902,14 +902,15 @@ class Database {
                 return [];
             }
             
-            $result = $stmt->get_result();
-            $schedule = [];
+            // Bind result variables
+            $stmt->bind_result($day_of_week, $start_time, $end_time, $status);
             
-            while ($row = $result->fetch_assoc()) {
-                $schedule[$row['day_of_week']] = [
-                    'start_time' => $row['start_time'],
-                    'end_time' => $row['end_time'],
-                    'status' => $row['status']
+            $schedule = [];
+            while ($stmt->fetch()) {
+                $schedule[$day_of_week] = [
+                    'start_time' => $start_time,
+                    'end_time' => $end_time,
+                    'status' => $status
                 ];
             }
             
