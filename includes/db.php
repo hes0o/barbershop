@@ -41,24 +41,114 @@ class Database {
     }
     
     public function getUserByEmail($email) {
-        $stmt = $this->conn->prepare("SELECT * FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        try {
+            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE email = ?");
+            if (!$stmt) {
+                error_log("Error preparing getUserByEmail statement: " . $this->conn->error);
+                return false;
+            }
+            
+            $stmt->bind_param("s", $email);
+            if (!$stmt->execute()) {
+                error_log("Error executing getUserByEmail statement: " . $stmt->error);
+                return false;
+            }
+            
+            // Bind the result variables
+            $stmt->bind_result($id, $username, $db_email, $password, $role, $phone);
+            
+            // Fetch the result
+            if ($stmt->fetch()) {
+                return [
+                    'id' => $id,
+                    'username' => $username,
+                    'email' => $db_email,
+                    'password' => $password,
+                    'role' => $role,
+                    'phone' => $phone
+                ];
+            }
+            
+            $stmt->close();
+            return false;
+        } catch (Exception $e) {
+            error_log("Error in getUserByEmail: " . $e->getMessage());
+            return false;
+        }
     }
     
     public function getUserByUsername($username) {
-        $stmt = $this->conn->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        try {
+            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE username = ?");
+            if (!$stmt) {
+                error_log("Error preparing getUserByUsername statement: " . $this->conn->error);
+                return false;
+            }
+            
+            $stmt->bind_param("s", $username);
+            if (!$stmt->execute()) {
+                error_log("Error executing getUserByUsername statement: " . $stmt->error);
+                return false;
+            }
+            
+            // Bind the result variables
+            $stmt->bind_result($id, $db_username, $email, $password, $role, $phone);
+            
+            // Fetch the result
+            if ($stmt->fetch()) {
+                return [
+                    'id' => $id,
+                    'username' => $db_username,
+                    'email' => $email,
+                    'password' => $password,
+                    'role' => $role,
+                    'phone' => $phone
+                ];
+            }
+            
+            $stmt->close();
+            return false;
+        } catch (Exception $e) {
+            error_log("Error in getUserByUsername: " . $e->getMessage());
+            return false;
+        }
     }
     
     public function getUserById($id) {
-        $stmt = $this->conn->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        try {
+            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE id = ?");
+            if (!$stmt) {
+                error_log("Error preparing getUserById statement: " . $this->conn->error);
+                return false;
+            }
+            
+            $stmt->bind_param("i", $id);
+            if (!$stmt->execute()) {
+                error_log("Error executing getUserById statement: " . $stmt->error);
+                return false;
+            }
+            
+            // Bind the result variables
+            $stmt->bind_result($db_id, $username, $email, $password, $role, $phone);
+            
+            // Fetch the result
+            if ($stmt->fetch()) {
+                return [
+                    'id' => $db_id,
+                    'username' => $username,
+                    'email' => $email,
+                    'password' => $password,
+                    'role' => $role,
+                    'phone' => $phone
+                ];
+            }
+            
+            $stmt->close();
+            return false;
+        } catch (Exception $e) {
+            error_log("Error in getUserById: " . $e->getMessage());
+            return false;
+        }
     }
     
     // Barber Operations
