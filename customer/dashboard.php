@@ -13,42 +13,159 @@ $db = new Database();
 $message = '';
 $error = '';
 
-// Get the specific logged-in customer's info
+// Get customer information
 $stmt = $db->getConnection()->prepare("
-    SELECT * FROM users 
-    WHERE id = ? AND role = 'customer'
+    SELECT u.*, 
+           COUNT(a.id) as total_appointments,
+           MAX(a.appointment_date) as last_visit
+    FROM users u
+    LEFT JOIN appointments a ON u.id = a.user_id
+    WHERE u.id = ?
+    GROUP BY u.id
 ");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$customer = $stmt->get_result()->fetch_assoc();
 
-if (!$customer) {
-    header('Location: ' . BASE_URL . '/login.php');
-    exit;
+if ($stmt === false) {
+    error_log("Error preparing customer query: " . $db->getConnection()->error);
+    die("An error occurred. Please try again later.");
 }
 
-// Get customer's appointments
-$appointments = $db->getAppointmentsByCustomer($_SESSION['user_id']);
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
 
-// Get all services
-$services = $db->getAllServices();
+// Bind the result variables
+$stmt->bind_result(
+    $id, $username, $email, $password, $role, $phone,
+    $total_appointments, $last_visit
+);
+
+// Fetch the result
+if ($stmt->fetch()) {
+    $customer = [
+        'id' => $id,
+        'username' => $username,
+        'email' => $email,
+        'role' => $role,
+        'phone' => $phone,
+        'total_appointments' => $total_appointments,
+        'last_visit' => $last_visit
+    ];
+} else {
+    error_log("No customer found for user_id: " . $_SESSION['user_id']);
+    die("Customer information not found.");
+}
+
+$stmt->close();
+
+// Get upcoming appointments
+$stmt = $db->getConnection()->prepare("
+    SELECT a.*, s.name as service_name, s.price, s.duration,
+           b.id as barber_id, u.username as barber_name
+    FROM appointments a
+    JOIN services s ON a.service_id = s.id
+    JOIN barbers b ON a.barber_id = b.id
+    JOIN users u ON b.user_id = u.id
+    WHERE a.user_id = ? AND a.appointment_date >= CURDATE()
+    ORDER BY a.appointment_date ASC, a.appointment_time ASC
+");
+
+if ($stmt === false) {
+    error_log("Error preparing appointments query: " . $db->getConnection()->error);
+    die("An error occurred. Please try again later.");
+}
+
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+
+// Bind the result variables for appointments
+$stmt->bind_result(
+    $appointment_id, $user_id, $barber_id, $service_id, $appointment_date,
+    $appointment_time, $status, $service_name, $price, $duration,
+    $barber_id, $barber_name
+);
+
+$appointments = [];
+while ($stmt->fetch()) {
+    $appointments[] = [
+        'id' => $appointment_id,
+        'date' => $appointment_date,
+        'time' => $appointment_time,
+        'status' => $status,
+        'service_name' => $service_name,
+        'price' => $price,
+        'duration' => $duration,
+        'barber_name' => $barber_name
+    ];
+}
+
+$stmt->close();
+
+// Get available services
+$stmt = $db->getConnection()->prepare("SELECT * FROM services ORDER BY price ASC");
+$stmt->execute();
+
+// Bind the result variables for services
+$stmt->bind_result($service_id, $service_name, $service_price, $service_duration, $service_description);
+
+$services = [];
+while ($stmt->fetch()) {
+    $services[] = [
+        'id' => $service_id,
+        'name' => $service_name,
+        'price' => $service_price,
+        'duration' => $service_duration,
+        'description' => $service_description
+    ];
+}
+
+$stmt->close();
+
+// Get available barbers
+$stmt = $db->getConnection()->prepare("
+    SELECT b.id, u.username, u.email, b.bio, b.experience_years
+    FROM barbers b
+    JOIN users u ON b.user_id = u.id
+    WHERE b.status = 'active'
+");
+
+if ($stmt === false) {
+    error_log("Error preparing barbers query: " . $db->getConnection()->error);
+    die("An error occurred. Please try again later.");
+}
+
+$stmt->execute();
+
+// Bind the result variables for barbers
+$stmt->bind_result($barber_id, $barber_name, $barber_email, $barber_bio, $barber_experience);
+
+$barbers = [];
+while ($stmt->fetch()) {
+    $barbers[] = [
+        'id' => $barber_id,
+        'name' => $barber_name,
+        'email' => $barber_email,
+        'bio' => $barber_bio,
+        'experience' => $barber_experience
+    ];
+}
+
+$stmt->close();
 
 // Sort appointments by date and time
 usort($appointments, function($a, $b) {
-    return strtotime($b['appointment_date'] . ' ' . $b['appointment_time']) - 
-           strtotime($a['appointment_date'] . ' ' . $a['appointment_time']);
+    return strtotime($b['date'] . ' ' . $b['time']) - 
+           strtotime($a['date'] . ' ' . $a['time']);
 });
 
 // Get upcoming appointments (today and future)
 $upcoming_appointments = array_filter($appointments, function($apt) {
-    $appointment_date = strtotime($apt['appointment_date']);
+    $appointment_date = strtotime($apt['date']);
     $today = strtotime('today');
     return $appointment_date >= $today;
 });
 
 // Get past appointments
 $past_appointments = array_filter($appointments, function($apt) {
-    $appointment_date = strtotime($apt['appointment_date']);
+    $appointment_date = strtotime($apt['date']);
     $today = strtotime('today');
     return $appointment_date < $today;
 });
@@ -339,10 +456,10 @@ function getStatusColor($status) {
                                         <h5 class="card-title mb-3"><?php echo htmlspecialchars($appointment['service_name']); ?></h5>
                                         <p class="card-text">
                                             <i class="fas fa-calendar me-2 text-primary"></i>
-                                            <?php echo date('F j, Y', strtotime($appointment['appointment_date'])); ?>
+                                            <?php echo date('F j, Y', strtotime($appointment['date'])); ?>
                                             <br>
                                             <i class="fas fa-clock me-2 text-primary"></i>
-                                            <?php echo date('g:i A', strtotime($appointment['appointment_time'])); ?>
+                                            <?php echo date('g:i A', strtotime($appointment['time'])); ?>
                                             <br>
                                             <i class="fas fa-user me-2 text-primary"></i>
                                             Barber: <?php echo htmlspecialchars($appointment['barber_name']); ?>
