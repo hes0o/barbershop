@@ -57,19 +57,48 @@ try {
         }
     }
 
-    // Update the schedule in the database
-    $success = $db->updateBarberWeeklySchedule($barber['id'], $schedule);
+    // Begin transaction
+    $db->getConnection()->begin_transaction();
 
-    if ($success) {
+    try {
+        // Delete existing schedule
+        $stmt = $db->getConnection()->prepare("DELETE FROM barber_schedule WHERE barber_id = ?");
+        $stmt->bind_param("i", $barber['id']);
+        $stmt->execute();
+
+        // Insert new schedule
+        $stmt = $db->getConnection()->prepare("
+            INSERT INTO barber_schedule (barber_id, day_of_week, start_time, end_time, status)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+
+        foreach ($schedule as $day => $data) {
+            $stmt->bind_param("issss", 
+                $barber['id'],
+                $day,
+                $data['start'],
+                $data['end'],
+                $data['status']
+            );
+            $stmt->execute();
+        }
+
+        // Commit transaction
+        $db->getConnection()->commit();
+
         echo json_encode([
             'success' => true,
-            'message' => 'Weekly schedule updated successfully'
+            'message' => 'Schedule updated successfully'
         ]);
-    } else {
-        throw new Exception('Failed to update weekly schedule');
+
+    } catch (Exception $e) {
+        // Rollback transaction on error
+        $db->getConnection()->rollback();
+        throw $e;
     }
+
 } catch (Exception $e) {
-    error_log("Error updating weekly schedule: " . $e->getMessage());
+    error_log("Error updating schedule: " . $e->getMessage());
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
