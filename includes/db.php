@@ -194,44 +194,78 @@ class Database {
     
     public function getAllBarbers() {
         $query = "
-            SELECT b.*, u.username, u.email, u.phone
+            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.username, u.email, u.phone
             FROM barbers b
             JOIN users u ON b.user_id = u.id
             WHERE b.status = 'active'
         ";
-        
         $stmt = $this->conn->prepare($query);
         if ($stmt === false) {
             error_log("Error preparing getAllBarbers query: " . $this->conn->error);
             return [];
         }
-        
         if (!$stmt->execute()) {
             error_log("Error executing getAllBarbers query: " . $stmt->error);
             return [];
         }
-        
-        $result = $stmt->get_result();
-        if ($result === false) {
-            error_log("Error getting result in getAllBarbers: " . $stmt->error);
-            return [];
+        $stmt->bind_result($id, $user_id, $bio, $experience_years, $status, $created_at, $username, $email, $phone);
+        $barbers = [];
+        while ($stmt->fetch()) {
+            $barbers[] = [
+                'id' => $id,
+                'user_id' => $user_id,
+                'bio' => $bio,
+                'experience_years' => $experience_years,
+                'status' => $status,
+                'created_at' => $created_at,
+                'username' => $username,
+                'email' => $email,
+                'phone' => $phone
+            ];
         }
-        
-        return $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $barbers;
     }
     
     // Service Operations
     public function getAllServices() {
-        $stmt = $this->conn->prepare("SELECT * FROM services ORDER BY price ASC");
+        $stmt = $this->conn->prepare("SELECT id, name, description, price, duration, created_at FROM services ORDER BY price ASC");
         $stmt->execute();
-        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->bind_result($id, $name, $description, $price, $duration, $created_at);
+        $services = [];
+        while ($stmt->fetch()) {
+            $services[] = [
+                'id' => $id,
+                'name' => $name,
+                'description' => $description,
+                'price' => $price,
+                'duration' => $duration,
+                'created_at' => $created_at
+            ];
+        }
+        $stmt->close();
+        return $services;
     }
     
     public function getServiceById($id) {
-        $stmt = $this->conn->prepare("SELECT * FROM services WHERE id = ?");
+        $stmt = $this->conn->prepare("SELECT id, name, description, price, duration, created_at FROM services WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        $stmt->bind_result($id, $name, $description, $price, $duration, $created_at);
+        if ($stmt->fetch()) {
+            $service = [
+                'id' => $id,
+                'name' => $name,
+                'description' => $description,
+                'price' => $price,
+                'duration' => $duration,
+                'created_at' => $created_at
+            ];
+            $stmt->close();
+            return $service;
+        }
+        $stmt->close();
+        return false;
     }
     
     // Appointment Operations
@@ -282,10 +316,8 @@ class Database {
     public function getAppointmentsByUser($user_id) {
         try {
             error_log("Fetching appointments for user_id: " . $user_id);
-            
             $stmt = $this->conn->prepare("
-                SELECT a.*, s.name as service_name, s.price, s.duration,
-                       b.id as barber_id, u.username as barber_name
+                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, b.id as barber_id, u.username as barber_name
                 FROM appointments a
                 JOIN services s ON a.service_id = s.id
                 JOIN barbers b ON a.barber_id = b.id
@@ -293,24 +325,36 @@ class Database {
                 WHERE a.user_id = ?
                 ORDER BY a.appointment_date DESC, a.appointment_time DESC
             ");
-            
             if ($stmt === false) {
                 error_log("Error preparing getAppointmentsByUser statement: " . $this->conn->error);
                 return [];
             }
-            
             $stmt->bind_param("i", $user_id);
-            
             if (!$stmt->execute()) {
                 error_log("Error executing getAppointmentsByUser: " . $stmt->error);
                 return [];
             }
-            
-            $result = $stmt->get_result();
-            $appointments = $result->fetch_all(MYSQLI_ASSOC);
-            
+            $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name, $price, $duration, $barber_id2, $barber_name);
+            $appointments = [];
+            while ($stmt->fetch()) {
+                $appointments[] = [
+                    'id' => $id,
+                    'user_id' => $user_id,
+                    'barber_id' => $barber_id,
+                    'service_id' => $service_id,
+                    'appointment_date' => $appointment_date,
+                    'appointment_time' => $appointment_time,
+                    'status' => $status,
+                    'notes' => $notes,
+                    'created_at' => $created_at,
+                    'service_name' => $service_name,
+                    'price' => $price,
+                    'duration' => $duration,
+                    'barber_name' => $barber_name
+                ];
+            }
+            $stmt->close();
             error_log("Found " . count($appointments) . " appointments for user_id: " . $user_id);
-            
             return $appointments;
         } catch (Exception $e) {
             error_log("Error in getAppointmentsByUser: " . $e->getMessage());
@@ -321,35 +365,46 @@ class Database {
     public function getAppointmentsByBarber($barber_id) {
         try {
             error_log("Fetching appointments for barber_id: " . $barber_id);
-            
             $stmt = $this->conn->prepare("
-                SELECT a.*, s.name as service_name, s.price, s.duration,
-                       u.username as customer_name, u.phone as customer_phone
+                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, u.username as customer_name, u.phone as customer_phone
                 FROM appointments a
                 JOIN services s ON a.service_id = s.id
                 JOIN users u ON a.user_id = u.id
                 WHERE a.barber_id = ?
                 ORDER BY a.appointment_date DESC, a.appointment_time DESC
             ");
-            
             if ($stmt === false) {
                 error_log("Error preparing getAppointmentsByBarber statement: " . $this->conn->error);
                 return [];
             }
-            
             $stmt->bind_param("i", $barber_id);
-            
             if (!$stmt->execute()) {
                 error_log("Error executing getAppointmentsByBarber: " . $stmt->error);
                 return [];
             }
-            
-            $result = $stmt->get_result();
-            $appointments = $result->fetch_all(MYSQLI_ASSOC);
-            
+            $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name, $price, $duration, $customer_name, $customer_phone);
+            $appointments = [];
+            while ($stmt->fetch()) {
+                $appointments[] = [
+                    'id' => $id,
+                    'user_id' => $user_id,
+                    'barber_id' => $barber_id,
+                    'service_id' => $service_id,
+                    'appointment_date' => $appointment_date,
+                    'appointment_time' => $appointment_time,
+                    'status' => $status,
+                    'notes' => $notes,
+                    'created_at' => $created_at,
+                    'service_name' => $service_name,
+                    'price' => $price,
+                    'duration' => $duration,
+                    'customer_name' => $customer_name,
+                    'customer_phone' => $customer_phone
+                ];
+            }
+            $stmt->close();
             error_log("Found " . count($appointments) . " appointments for barber_id: " . $barber_id);
             error_log("Appointments data: " . print_r($appointments, true));
-            
             return $appointments;
         } catch (Exception $e) {
             error_log("Error in getAppointmentsByBarber: " . $e->getMessage());
@@ -359,36 +414,25 @@ class Database {
     
     public function getBarberAppointments($barber_id, $status = 'all', $date = null, $search = '', $year = null, $month = null) {
         try {
-            $query = "SELECT a.*, s.name as service_name, s.price, s.duration,
-                           u.username as customer_name, u.phone as customer_phone,
-                           a.appointment_date, a.appointment_time, a.status
-                    FROM appointments a 
-                    JOIN services s ON a.service_id = s.id
-                    JOIN users u ON a.user_id = u.id
-                    WHERE a.barber_id = ?";
-            
+            $query = "SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, u.username as customer_name, u.phone as customer_phone FROM appointments a JOIN services s ON a.service_id = s.id JOIN users u ON a.user_id = u.id WHERE a.barber_id = ?";
             $params = [$barber_id];
             $types = "i";
-            
             if ($status !== 'all') {
                 $query .= " AND a.status = ?";
                 $params[] = $status;
                 $types .= "s";
             }
-            
             if ($date) {
                 $query .= " AND a.appointment_date = ?";
                 $params[] = $date;
                 $types .= "s";
             }
-            
             if ($year && $month) {
                 $query .= " AND YEAR(a.appointment_date) = ? AND MONTH(a.appointment_date) = ?";
                 $params[] = $year;
                 $params[] = $month;
                 $types .= "ii";
             }
-            
             if ($search) {
                 $search = "%$search%";
                 $query .= " AND (u.username LIKE ? OR s.name LIKE ?)";
@@ -396,32 +440,41 @@ class Database {
                 $params[] = $search;
                 $types .= "ss";
             }
-            
             $query .= " ORDER BY a.appointment_date ASC, a.appointment_time ASC";
-            
             $stmt = $this->conn->prepare($query);
             if (!$stmt) {
                 error_log("Error preparing getBarberAppointments statement: " . $this->conn->error);
                 return [];
             }
-            
             if (!empty($params)) {
                 $stmt->bind_param($types, ...$params);
             }
-            
             if (!$stmt->execute()) {
                 error_log("Error executing getBarberAppointments: " . $stmt->error);
                 return [];
             }
-            
-            $result = $stmt->get_result();
-            $appointments = $result->fetch_all(MYSQLI_ASSOC);
-            
-            // Log the appointments data for debugging
-            error_log("Appointments data: " . print_r($appointments, true));
-            
+            $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name, $price, $duration, $customer_name, $customer_phone);
+            $appointments = [];
+            while ($stmt->fetch()) {
+                $appointments[] = [
+                    'id' => $id,
+                    'user_id' => $user_id,
+                    'barber_id' => $barber_id,
+                    'service_id' => $service_id,
+                    'appointment_date' => $appointment_date,
+                    'appointment_time' => $appointment_time,
+                    'status' => $status,
+                    'notes' => $notes,
+                    'created_at' => $created_at,
+                    'service_name' => $service_name,
+                    'price' => $price,
+                    'duration' => $duration,
+                    'customer_name' => $customer_name,
+                    'customer_phone' => $customer_phone
+                ];
+            }
+            $stmt->close();
             return $appointments;
-            
         } catch (Exception $e) {
             error_log("Error in getBarberAppointments: " . $e->getMessage());
             return [];
@@ -429,23 +482,32 @@ class Database {
     }
     
     public function getAppointmentById($appointment_id) {
-        $query = "SELECT * FROM appointments WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
+        $stmt = $this->conn->prepare("SELECT id, user_id, barber_id, service_id, appointment_date, appointment_time, status, notes, created_at FROM appointments WHERE id = ?");
         if (!$stmt) {
             throw new Exception("Error preparing statement: " . $this->conn->error);
         }
-        
         $stmt->bind_param("i", $appointment_id);
         if (!$stmt->execute()) {
             throw new Exception("Error executing statement: " . $stmt->error);
         }
-        
-        $result = $stmt->get_result();
-        if (!$result) {
-            throw new Exception("Error getting result: " . $stmt->error);
+        $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at);
+        if ($stmt->fetch()) {
+            $appointment = [
+                'id' => $id,
+                'user_id' => $user_id,
+                'barber_id' => $barber_id,
+                'service_id' => $service_id,
+                'appointment_date' => $appointment_date,
+                'appointment_time' => $appointment_time,
+                'status' => $status,
+                'notes' => $notes,
+                'created_at' => $created_at
+            ];
+            $stmt->close();
+            return $appointment;
         }
-        
-        return $result->fetch_assoc();
+        $stmt->close();
+        return false;
     }
     
     public function updateAppointmentStatus($appointment_id, $status) {
@@ -470,62 +532,41 @@ class Database {
     public function getBarberAvailability($barber_id, $date_or_year, $month = null) {
         try {
             error_log("Getting barber availability for barber_id: $barber_id, date/year: $date_or_year, month: $month");
-            
             if ($month !== null) {
-                // Monthly query
                 $start_date = sprintf('%04d-%02d-01', $date_or_year, $month);
                 $end_date = date('Y-m-t', strtotime($start_date));
-                
-                $query = "
-                    SELECT date, is_available, start_time, end_time
-                    FROM barber_availability
-                    WHERE barber_id = ? 
-                    AND date BETWEEN ? AND ?
-                ";
-                
+                $query = "SELECT date, is_available, start_time, end_time FROM barber_availability WHERE barber_id = ? AND date BETWEEN ? AND ?";
                 $stmt = $this->conn->prepare($query);
                 if (!$stmt) {
                     error_log("Error preparing monthly availability query: " . $this->conn->error);
                     return [];
                 }
-                
                 $stmt->bind_param("iss", $barber_id, $start_date, $end_date);
             } else {
-                // Single date query
-                $query = "
-                    SELECT date, is_available, start_time, end_time
-                    FROM barber_availability
-                    WHERE barber_id = ? AND date = ?
-                ";
-                
+                $query = "SELECT date, is_available, start_time, end_time FROM barber_availability WHERE barber_id = ? AND date = ?";
                 $stmt = $this->conn->prepare($query);
                 if (!$stmt) {
                     error_log("Error preparing single date availability query: " . $this->conn->error);
                     return [];
                 }
-                
                 $stmt->bind_param("is", $barber_id, $date_or_year);
             }
-            
             if (!$stmt->execute()) {
                 error_log("Error executing availability query: " . $stmt->error);
                 return [];
             }
-            
-            $result = $stmt->get_result();
+            $stmt->bind_result($date, $is_available, $start_time, $end_time);
             $availability = [];
-            
-            while ($row = $result->fetch_assoc()) {
-                $availability[$row['date']] = [
-                    'is_available' => (bool)$row['is_available'],
-                    'start_time' => $row['start_time'],
-                    'end_time' => $row['end_time']
+            while ($stmt->fetch()) {
+                $availability[$date] = [
+                    'is_available' => (bool)$is_available,
+                    'start_time' => $start_time,
+                    'end_time' => $end_time
                 ];
             }
-            
+            $stmt->close();
             error_log("Retrieved availability data: " . print_r($availability, true));
             return $availability;
-            
         } catch (Exception $e) {
             error_log("Error in getBarberAvailability: " . $e->getMessage());
             return [];
@@ -576,42 +617,36 @@ class Database {
     }
     
     public function getAllCustomers() {
-        $query = "SELECT DISTINCT 
-                    u.id,
-                    u.name,
-                    u.email,
-                    u.phone,
-                    MAX(a.appointment_date) as last_visit,
-                    COUNT(a.id) as total_appointments
-                FROM users u
-                INNER JOIN appointments a ON u.id = a.user_id
-                WHERE u.role = 'customer'
-                GROUP BY u.id, u.name, u.email, u.phone
-                ORDER BY u.name ASC";
-        
-        $result = $this->conn->query($query);
-        if (!$result) {
+        $query = "SELECT DISTINCT u.id, u.username, u.email, u.phone, MAX(a.appointment_date) as last_visit, COUNT(a.id) as total_appointments FROM users u INNER JOIN appointments a ON u.id = a.user_id WHERE u.role = 'customer' GROUP BY u.id, u.username, u.email, u.phone ORDER BY u.username ASC";
+        $stmt = $this->conn->prepare($query);
+        if (!$stmt) {
             error_log("SQL Error in getAllCustomers: " . $this->conn->error);
             return [];
         }
-        return $result->fetch_all(MYSQLI_ASSOC);
+        if (!$stmt->execute()) {
+            error_log("Error executing getAllCustomers: " . $stmt->error);
+            return [];
+        }
+        $stmt->bind_result($id, $username, $email, $phone, $last_visit, $total_appointments);
+        $customers = [];
+        while ($stmt->fetch()) {
+            $customers[] = [
+                'id' => $id,
+                'username' => $username,
+                'email' => $email,
+                'phone' => $phone,
+                'last_visit' => $last_visit,
+                'total_appointments' => $total_appointments
+            ];
+        }
+        $stmt->close();
+        return $customers;
     }
     
     public function getBarberCustomers($barber_id, $search = '') {
-        $query = "SELECT DISTINCT 
-                    u.id,
-                    u.username,
-                    u.email,
-                    u.phone,
-                    MAX(a.appointment_date) as last_visit,
-                    COUNT(a.id) as total_appointments
-                  FROM users u
-                  INNER JOIN appointments a ON u.id = a.user_id
-                  WHERE a.barber_id = ? AND u.role = 'customer'";
-        
+        $query = "SELECT DISTINCT u.id, u.username, u.email, u.phone, MAX(a.appointment_date) as last_visit, COUNT(a.id) as total_appointments FROM users u INNER JOIN appointments a ON u.id = a.user_id WHERE a.barber_id = ? AND u.role = 'customer'";
         $params = [$barber_id];
         $types = "i";
-        
         if ($search) {
             $query .= " AND (u.username LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)";
             $search_param = "%$search%";
@@ -620,83 +655,82 @@ class Database {
             $params[] = $search_param;
             $types .= "sss";
         }
-        
-        $query .= " GROUP BY u.id, u.username, u.email, u.phone
-                    ORDER BY last_visit DESC";
-        
+        $query .= " GROUP BY u.id, u.username, u.email, u.phone ORDER BY last_visit DESC";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) {
             throw new Exception("Error preparing statement: " . $this->conn->error);
         }
-        
         $stmt->bind_param($types, ...$params);
         if (!$stmt->execute()) {
             throw new Exception("Error executing statement: " . $stmt->error);
         }
-        
-        $result = $stmt->get_result();
-        if (!$result) {
-            throw new Exception("Error getting result: " . $stmt->error);
+        $stmt->bind_result($id, $username, $email, $phone, $last_visit, $total_appointments);
+        $customers = [];
+        while ($stmt->fetch()) {
+            $customers[] = [
+                'id' => $id,
+                'username' => $username,
+                'email' => $email,
+                'phone' => $phone,
+                'last_visit' => $last_visit,
+                'total_appointments' => $total_appointments
+            ];
         }
-        
-        return $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $customers;
     }
     
     public function getCustomerAppointments($customer_id, $barber_id) {
-        $query = "SELECT a.*, s.name as service_name
-                  FROM appointments a
-                  JOIN services s ON a.service_id = s.id
-                  WHERE a.user_id = ? AND a.barber_id = ?
-                  ORDER BY a.appointment_date DESC, a.appointment_time DESC";
-        
+        $query = "SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name FROM appointments a JOIN services s ON a.service_id = s.id WHERE a.user_id = ? AND a.barber_id = ? ORDER BY a.appointment_date DESC, a.appointment_time DESC";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) {
             throw new Exception("Error preparing statement: " . $this->conn->error);
         }
-        
         $stmt->bind_param("ii", $customer_id, $barber_id);
         if (!$stmt->execute()) {
             throw new Exception("Error executing statement: " . $stmt->error);
         }
-        
-        $result = $stmt->get_result();
-        if (!$result) {
-            throw new Exception("Error getting result: " . $stmt->error);
+        $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name);
+        $appointments = [];
+        while ($stmt->fetch()) {
+            $appointments[] = [
+                'id' => $id,
+                'user_id' => $user_id,
+                'barber_id' => $barber_id,
+                'service_id' => $service_id,
+                'appointment_date' => $appointment_date,
+                'appointment_time' => $appointment_time,
+                'status' => $status,
+                'notes' => $notes,
+                'created_at' => $created_at,
+                'service_name' => $service_name
+            ];
         }
-        
-        return $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $appointments;
     }
     
     public function getBarberIdByUserId($user_id) {
         try {
             error_log("Getting barber ID for user_id: " . $user_id);
-            
-            $stmt = $this->conn->prepare("
-                SELECT id 
-                FROM barbers 
-                WHERE user_id = ?
-            ");
-            
+            $stmt = $this->conn->prepare("SELECT id FROM barbers WHERE user_id = ?");
             if ($stmt === false) {
                 error_log("Error preparing getBarberIdByUserId statement: " . $this->conn->error);
                 return null;
             }
-            
             $stmt->bind_param("i", $user_id);
-            
             if (!$stmt->execute()) {
                 error_log("Error executing getBarberIdByUserId: " . $stmt->error);
                 return null;
             }
-            
-            $result = $stmt->get_result();
-            $barber = $result->fetch_assoc();
-            
-            if ($barber) {
-                error_log("Found barber ID: " . $barber['id'] . " for user_id: " . $user_id);
-                return $barber['id'];
+            $stmt->bind_result($id);
+            if ($stmt->fetch()) {
+                error_log("Found barber ID: " . $id . " for user_id: " . $user_id);
+                $stmt->close();
+                return $id;
             } else {
                 error_log("No barber found for user_id: " . $user_id);
+                $stmt->close();
                 return null;
             }
         } catch (Exception $e) {
@@ -707,38 +741,27 @@ class Database {
     
     public function hasAppointmentThisWeek($user_id) {
         try {
-            // Get the start and end of the current week
             $start_of_week = date('Y-m-d', strtotime('monday this week'));
             $end_of_week = date('Y-m-d', strtotime('sunday this week'));
-            
             error_log("Checking appointments for user $user_id between $start_of_week and $end_of_week");
-            
-            $stmt = $this->conn->prepare("
-                SELECT COUNT(*) as count 
-                FROM appointments 
-                WHERE user_id = ? 
-                AND appointment_date BETWEEN ? AND ?
-                AND status != 'cancelled'
-            ");
-            
+            $stmt = $this->conn->prepare("SELECT COUNT(*) as count FROM appointments WHERE user_id = ? AND appointment_date BETWEEN ? AND ? AND status != 'cancelled'");
             if ($stmt === false) {
                 error_log("Error preparing hasAppointmentThisWeek statement: " . $this->conn->error);
                 return false;
             }
-            
             $stmt->bind_param("iss", $user_id, $start_of_week, $end_of_week);
-            
             if (!$stmt->execute()) {
                 error_log("Error executing hasAppointmentThisWeek: " . $stmt->error);
                 return false;
             }
-            
-            $result = $stmt->get_result();
-            $row = $result->fetch_assoc();
-            
-            error_log("Found {$row['count']} appointments this week");
-            
-            return $row['count'] > 0;
+            $stmt->bind_result($count);
+            if ($stmt->fetch()) {
+                error_log("Found {$count} appointments this week");
+                $stmt->close();
+                return $count > 0;
+            }
+            $stmt->close();
+            return false;
         } catch (Exception $e) {
             error_log("Error in hasAppointmentThisWeek: " . $e->getMessage());
             return false;
@@ -893,7 +916,7 @@ class Database {
                 WHERE barber_id = ? AND day_of_week = ?
             ");
             $stmt->execute([$barber_id, $day_of_week]);
-            $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
+            $schedule = $stmt->fetch(MYSQLI_ASSOC);
 
             if (!$schedule || $schedule['status'] === 'unavailable') {
                 return [];
@@ -907,7 +930,7 @@ class Database {
                 WHERE a.barber_id = ? AND a.appointment_date = ? AND a.status != 'cancelled'
             ");
             $stmt->execute([$barber_id, $date]);
-            $appointments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $appointments = $stmt->fetchAll(MYSQLI_ASSOC);
 
             // Generate time slots
             $start_time = strtotime($schedule['start_time']);
@@ -936,7 +959,7 @@ class Database {
             }
 
             return $time_slots;
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             error_log("Error getting available time slots: " . $e->getMessage());
             return [];
         }
@@ -992,26 +1015,31 @@ class Database {
 
     public function getSingleCustomer() {
         try {
-            // First check if the statement preparation was successful
-            $stmt = $this->conn->prepare("
-                SELECT u.* 
-                FROM users u 
-                WHERE u.role = 'customer' 
-                LIMIT 1
-            ");
-            
+            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone, created_at FROM users WHERE role = 'customer' LIMIT 1");
             if ($stmt === false) {
                 error_log("Error preparing getSingleCustomer query: " . $this->conn->error);
                 return null;
             }
-            
             if (!$stmt->execute()) {
                 error_log("Error executing getSingleCustomer query: " . $stmt->error);
                 return null;
             }
-            
-            $result = $stmt->get_result();
-            return $result->fetch_assoc();
+            $stmt->bind_result($id, $username, $email, $password, $role, $phone, $created_at);
+            if ($stmt->fetch()) {
+                $customer = [
+                    'id' => $id,
+                    'username' => $username,
+                    'email' => $email,
+                    'password' => $password,
+                    'role' => $role,
+                    'phone' => $phone,
+                    'created_at' => $created_at
+                ];
+                $stmt->close();
+                return $customer;
+            }
+            $stmt->close();
+            return null;
         } catch (Exception $e) {
             error_log("Error in getSingleCustomer: " . $e->getMessage());
             return null;
@@ -1021,10 +1049,8 @@ class Database {
     public function getAppointmentsByCustomer($customer_id) {
         try {
             error_log("Fetching appointments for customer_id: " . $customer_id);
-            
             $stmt = $this->conn->prepare("
-                SELECT a.*, s.name as service_name, s.price, s.duration,
-                       b.id as barber_id, u.username as barber_name
+                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, b.id as barber_id, u.username as barber_name
                 FROM appointments a
                 JOIN services s ON a.service_id = s.id
                 JOIN barbers b ON a.barber_id = b.id
@@ -1032,25 +1058,37 @@ class Database {
                 WHERE a.user_id = ?
                 ORDER BY a.appointment_date DESC, a.appointment_time DESC
             ");
-            
             if ($stmt === false) {
                 error_log("Error preparing getAppointmentsByCustomer statement: " . $this->conn->error);
                 return [];
             }
-            
             $stmt->bind_param("i", $customer_id);
-            
             if (!$stmt->execute()) {
                 error_log("Error executing getAppointmentsByCustomer: " . $stmt->error);
                 return [];
             }
-            
-            $result = $stmt->get_result();
-            $appointments = $result->fetch_all(MYSQLI_ASSOC);
-            
+            $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name, $price, $duration, $barber_id2, $barber_name);
+            $appointments = [];
+            while ($stmt->fetch()) {
+                $appointments[] = [
+                    'id' => $id,
+                    'user_id' => $user_id,
+                    'barber_id' => $barber_id,
+                    'service_id' => $service_id,
+                    'appointment_date' => $appointment_date,
+                    'appointment_time' => $appointment_time,
+                    'status' => $status,
+                    'notes' => $notes,
+                    'created_at' => $created_at,
+                    'service_name' => $service_name,
+                    'price' => $price,
+                    'duration' => $duration,
+                    'barber_name' => $barber_name
+                ];
+            }
+            $stmt->close();
             error_log("Found " . count($appointments) . " appointments for customer_id: " . $customer_id);
             error_log("Appointments data: " . print_r($appointments, true));
-            
             return $appointments;
         } catch (Exception $e) {
             error_log("Error in getAppointmentsByCustomer: " . $e->getMessage());
@@ -1059,13 +1097,30 @@ class Database {
     }
 
     public function getWorkingHours() {
-        $query = "SELECT * FROM working_hours ORDER BY day_of_week";
-        $result = $this->conn->query($query);
-        if (!$result) {
+        $stmt = $this->conn->prepare("SELECT id, day_of_week, day_name, open_time, close_time, is_working, created_at FROM working_hours ORDER BY day_of_week");
+        if (!$stmt) {
             error_log("Error getting working hours: " . $this->conn->error);
             return [];
         }
-        return $result->fetch_all(MYSQLI_ASSOC);
+        if (!$stmt->execute()) {
+            error_log("Error executing working hours: " . $stmt->error);
+            return [];
+        }
+        $stmt->bind_result($id, $day_of_week, $day_name, $open_time, $close_time, $is_working, $created_at);
+        $hours = [];
+        while ($stmt->fetch()) {
+            $hours[] = [
+                'id' => $id,
+                'day_of_week' => $day_of_week,
+                'day_name' => $day_name,
+                'open_time' => $open_time,
+                'close_time' => $close_time,
+                'is_working' => $is_working,
+                'created_at' => $created_at
+            ];
+        }
+        $stmt->close();
+        return $hours;
     }
 
     public function updateUser($id, $username, $email, $phone) {
