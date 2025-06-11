@@ -429,59 +429,69 @@ function getStatusColor($status) {
             </div>
         </div>
 
-        <!-- Simple Booking Form -->
+        <!-- Modern & Beautiful Booking Form -->
         <div class="booking-section mb-4">
-            <h3 class="section-title">Book an Appointment</h3>
-            <form id="simpleBookingForm" class="row g-3">
-                <div class="col-md-4">
-                    <label for="bookingDate" class="form-label">Date</label>
-                    <select class="form-select" id="bookingDate" name="date" required>
-                        <option value="">Select a date</option>
-                        <?php
-                        // Get available dates from working hours (or barbers dashboard logic)
-                        $dates = [];
-                        $today = strtotime('today');
-                        for ($i = 0; $i < 14; $i++) { // Next 2 weeks
-                            $date = strtotime("+{$i} day", $today);
-                            $dates[] = date('Y-m-d', $date);
-                        }
-                        foreach ($dates as $date) {
-                            echo '<option value="' . $date . '">' . date('l, F j, Y', strtotime($date)) . '</option>';
-                        }
-                        ?>
-                    </select>
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-4">
+                    <h3 class="section-title mb-4"><i class="fas fa-calendar-plus text-primary me-2"></i>Book an Appointment</h3>
+                    <form id="modernBookingForm" class="row g-4 align-items-end">
+                        <div class="col-md-4">
+                            <label for="bookingDate" class="form-label"><i class="fas fa-calendar-alt me-1"></i> Date</label>
+                            <select class="form-select form-select-lg" id="bookingDate" name="date" required>
+                                <option value="">Select a date</option>
+                                <?php
+                                $dates = [];
+                                $today = strtotime('today');
+                                for ($i = 0; $i < 14; $i++) {
+                                    $date = strtotime("+{$i} day", $today);
+                                    $dates[] = date('Y-m-d', $date);
+                                }
+                                foreach ($dates as $date) {
+                                    echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="bookingTime" class="form-label"><i class="fas fa-clock me-1"></i> Time</label>
+                            <select class="form-select form-select-lg" id="bookingTime" name="time" required>
+                                <option value="">Select a time</option>
+                                <?php
+                                for ($h = 9; $h <= 16; $h++) {
+                                    $time = sprintf('%02d:00', $h);
+                                    echo '<option value="' . $time . '">' . $time . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="bookingService" class="form-label"><i class="fas fa-cut me-1"></i> Service</label>
+                            <select class="form-select form-select-lg" id="bookingService" name="service_id" required>
+                                <option value="">Select a service</option>
+                                <?php foreach ($services as $service): ?>
+                                    <option value="<?php echo $service['id']; ?>">
+                                        <?php echo htmlspecialchars($service['name']) . ' ($' . number_format($service['price'], 2) . ')'; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="card bg-light border-0 mb-3" id="bookingSummaryCard" style="display:none;">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2"><i class="fas fa-info-circle text-info me-2"></i>Booking Summary</h5>
+                                    <div id="bookingSummaryContent"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-lg btn-success px-5 shadow"><i class="fas fa-check-circle me-2"></i>Book Now</button>
+                        </div>
+                        <div class="col-12">
+                            <div id="bookingResult"></div>
+                        </div>
+                    </form>
                 </div>
-                <div class="col-md-4">
-                    <label for="bookingTime" class="form-label">Time</label>
-                    <select class="form-select" id="bookingTime" name="time" required>
-                        <option value="">Select a time</option>
-                        <?php
-                        // Show times from 09:00 to 17:00, one hour slots
-                        for ($h = 9; $h <= 16; $h++) {
-                            $time = sprintf('%02d:00', $h);
-                            echo '<option value="' . $time . '">' . $time . '</option>';
-                        }
-                        ?>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="bookingService" class="form-label">Service</label>
-                    <select class="form-select" id="bookingService" name="service_id" required>
-                        <option value="">Select a service</option>
-                        <?php foreach ($services as $service): ?>
-                            <option value="<?php echo $service['id']; ?>">
-                                <?php echo htmlspecialchars($service['name']) . ' ($' . number_format($service['price'], 2) . ')'; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">Book Appointment</button>
-                </div>
-                <div class="col-12">
-                    <div id="bookingResult"></div>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -511,25 +521,52 @@ function getStatusColor($status) {
         }
     }
 
-    document.getElementById('simpleBookingForm').addEventListener('submit', async function(e) {
+    function updateBookingSummary() {
+        const date = document.getElementById('bookingDate').value;
+        const time = document.getElementById('bookingTime').value;
+        const serviceSelect = document.getElementById('bookingService');
+        const service_id = serviceSelect.value;
+        const serviceText = serviceSelect.options[serviceSelect.selectedIndex]?.text || '';
+        const summaryCard = document.getElementById('bookingSummaryCard');
+        const summaryContent = document.getElementById('bookingSummaryContent');
+        if (date && time && service_id) {
+            summaryCard.style.display = '';
+            summaryContent.innerHTML = `
+                <div class='row'>
+                    <div class='col-md-4'><strong>Date:</strong> <span class='text-primary'>${date}</span></div>
+                    <div class='col-md-4'><strong>Time:</strong> <span class='text-primary'>${time}</span></div>
+                    <div class='col-md-4'><strong>Service:</strong> <span class='text-primary'>${serviceText}</span></div>
+                </div>
+            `;
+        } else {
+            summaryCard.style.display = 'none';
+            summaryContent.innerHTML = '';
+        }
+    }
+    document.getElementById('bookingDate').addEventListener('change', updateBookingSummary);
+    document.getElementById('bookingTime').addEventListener('change', updateBookingSummary);
+    document.getElementById('bookingService').addEventListener('change', updateBookingSummary);
+
+    document.getElementById('modernBookingForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const date = document.getElementById('bookingDate').value;
         const time = document.getElementById('bookingTime').value;
         const service_id = document.getElementById('bookingService').value;
         const resultDiv = document.getElementById('bookingResult');
         resultDiv.innerHTML = '';
-
         if (!date || !time || !service_id) {
             resultDiv.innerHTML = '<div class="alert alert-danger">Please select date, time, and service.</div>';
             return;
         }
-
         try {
             const response = await fetch('book_appointment.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ date, time, service_id: parseInt(service_id) })
             });
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
             const data = await response.json();
             if (data.success) {
                 resultDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
