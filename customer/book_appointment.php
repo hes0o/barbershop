@@ -34,6 +34,17 @@ try {
         throw new Exception('No barber available at this time');
     }
 
+    // Validate service exists
+    $service = $db->getServiceById($data['service_id']);
+    if (!$service) {
+        throw new Exception('Selected service is not available');
+    }
+
+    // Check if barber is available at this time
+    if (!$db->isBarberAvailable($barber['id'], $data['date'], $data['time'])) {
+        throw new Exception('Selected time slot is not available');
+    }
+
     // Create the appointment
     $result = $db->createAppointment(
         $_SESSION['user_id'],
@@ -47,7 +58,10 @@ try {
         throw new Exception('Unable to book appointment. Please try again.');
     }
 
-    echo json_encode(['success' => true]);
+    echo json_encode([
+        'success' => true,
+        'message' => 'Appointment booked successfully'
+    ]);
 
 } catch (Exception $e) {
     error_log("Booking error: " . $e->getMessage());

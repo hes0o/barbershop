@@ -648,69 +648,34 @@ function getStatusColor($status) {
     // Book Appointment
     document.getElementById('bookButton').addEventListener('click', async function() {
         if (!selectedDate || !selectedTime || !selectedService) {
-            console.error('Missing required data:', { selectedDate, selectedTime, selectedService });
+            alert('Please select a date, time, and service');
             return;
         }
 
-        const requestData = {
-            service_id: selectedService,
-            date: selectedDate,
-            time: selectedTime
-        };
-        console.log('Sending booking request:', requestData);
-
         try {
-            const response = await fetch('<?php echo BASE_URL; ?>/customer/book_appointment.php', {
+            const response = await fetch('book_appointment.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(requestData)
+                body: JSON.stringify({
+                    service_id: selectedService,
+                    date: selectedDate,
+                    time: selectedTime
+                })
             });
 
-            console.log('Response status:', response.status);
             const data = await response.json();
-            console.log('Response data:', data);
             
             if (data.success) {
-                // Show success message
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                alertDiv.innerHTML = `
-                    ${data.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.booking-section'));
-                
-                // Reload the page after a short delay
-                setTimeout(() => location.reload(), 2000);
+                alert('Appointment booked successfully!');
+                location.reload();
             } else {
-                // Show error message with details
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-                
-                let errorMessage = data.message;
-                if (data.debug) {
-                    errorMessage += `<br><small class="text-muted">Debug info: ${data.debug.file}:${data.debug.line}</small>`;
-                    console.error('Debug info:', data.debug);
-                }
-                
-                alertDiv.innerHTML = `
-                    ${errorMessage}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.booking-section'));
+                alert(data.error || 'Failed to book appointment');
             }
         } catch (error) {
-            console.error('Error during booking:', error);
-            // Show network or other errors
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-            alertDiv.innerHTML = `
-                Failed to book appointment. Please try again.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.booking-section'));
+            console.error('Booking error:', error);
+            alert('Error booking appointment. Please try again.');
         }
     });
 
