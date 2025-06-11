@@ -84,7 +84,7 @@ try {
     $booked_slots = [];
     while ($stmt->fetch()) {
         $start = strtotime($appointment_time);
-        $end = $start + ($duration * 60); // Convert duration to seconds
+        $end = $start + 3600; // 1 hour in seconds
         $booked_slots[] = [
             'start' => $start,
             'end' => $end
@@ -96,7 +96,7 @@ try {
     // Generate available time slots
     $start_timestamp = strtotime($start_time);
     $end_timestamp = strtotime($end_time);
-    $interval = 30 * 60; // 30 minutes in seconds
+    $interval = 3600; // 1 hour in seconds
     $available_times = [];
 
     // Filter out past times for today

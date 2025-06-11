@@ -556,7 +556,9 @@ function getStatusColor($status) {
                     data.times.forEach(time => {
                         const option = document.createElement('option');
                         option.value = time;
-                        option.textContent = time;
+                        // Format time to show only hours
+                        const hour = time.split(':')[0];
+                        option.textContent = `${hour}:00`;
                         timeSelect.appendChild(option);
                     });
                     timeSelect.disabled = false;
