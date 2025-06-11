@@ -932,31 +932,27 @@ class Database {
 
     public function authenticateUser($email, $password, $role) {
         try {
-            error_log("Attempting to authenticate user: email=$email, role=$role");
+            // Debug log
+            error_log("[AUTH DEBUG] Attempting to authenticate user: " . $email . " with role: " . $role);
             
             $stmt = $this->conn->prepare("SELECT id, username, email, password, role FROM users WHERE email = ? AND role = ?");
-            if (!$stmt) {
-                error_log("Error preparing authenticateUser statement: " . $this->conn->error);
+            if ($stmt === false) {
+                error_log("[AUTH DEBUG] Prepare failed: " . $this->conn->error);
                 return false;
             }
             
             $stmt->bind_param("ss", $email, $role);
             if (!$stmt->execute()) {
-                error_log("Error executing authenticateUser statement: " . $stmt->error);
+                error_log("[AUTH DEBUG] Execute failed: " . $stmt->error);
                 return false;
             }
             
-            // Bind the result variables
-            $stmt->bind_result($id, $username, $db_email, $db_password, $db_role);
+            $stmt->bind_result($id, $username, $db_email, $hashed_password, $db_role);
             
-            // Fetch the result
             if ($stmt->fetch()) {
-                error_log("User found in database. Verifying password...");
-                error_log("Stored password hash: " . $db_password);
-                error_log("Provided password: " . $password);
-                
-                if (password_verify($password, $db_password)) {
-                    error_log("Password verification successful");
+                error_log("[AUTH DEBUG] User found, verifying password");
+                if (password_verify($password, $hashed_password)) {
+                    error_log("[AUTH DEBUG] Password verified successfully");
                     return [
                         'id' => $id,
                         'username' => $username,
@@ -964,16 +960,16 @@ class Database {
                         'role' => $db_role
                     ];
                 } else {
-                    error_log("Password verification failed");
+                    error_log("[AUTH DEBUG] Password verification failed");
                 }
             } else {
-                error_log("No user found with email=$email and role=$role");
+                error_log("[AUTH DEBUG] No user found with email: " . $email . " and role: " . $role);
             }
             
             $stmt->close();
             return false;
         } catch (Exception $e) {
-            error_log("Authentication error: " . $e->getMessage());
+            error_log("[AUTH DEBUG] Exception: " . $e->getMessage());
             return false;
         }
     }

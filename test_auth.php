@@ -1,159 +1,120 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/includes/db.php';
+require_once 'config.php';
+require_once 'includes/db.php';
 
-// Enable error reporting for testing
+// Enable error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h2>Testing Authentication System</h2>";
+echo "<h2>Authentication System Test</h2>";
 echo "<pre>";
 
-function debug_log($message, $data = null) {
-    echo "\n[DEBUG] " . $message;
-    if ($data !== null) {
-        echo "\nData: " . print_r($data, true);
+function test_result($test_name, $result, $details = '') {
+    $status = $result ? "✓ PASS" : "✗ FAIL";
+    echo "\n[$status] $test_name";
+    if ($details) {
+        echo "\nDetails: $details";
     }
     echo "\n";
+    return $result;
 }
 
 try {
-    debug_log("Starting database connection test");
     $db = new Database();
-    debug_log("Database connection successful");
     
-    // Test user credentials
+    // 1. Test Database Connection
+    echo "\n=== Database Connection Test ===\n";
+    test_result("Database Connection", $db->getConnection() !== null);
+    
+    // 2. Test User Creation
+    echo "\n=== User Creation Test ===\n";
     $test_user = [
-        'username' => 'testuser',
-        'email' => 'test@example.com',
+        'username' => 'testuser_' . time(),
+        'email' => 'test_' . time() . '@example.com',
         'password' => 'Test123!',
         'role' => 'customer',
         'phone' => '1234567890'
     ];
     
-    echo "\n<h3>1. Testing User Registration</h3>";
+    $create_result = $db->createUser(
+        $test_user['username'],
+        $test_user['email'],
+        $test_user['password'],
+        $test_user['role'],
+        $test_user['phone']
+    );
     
-    // Check if user already exists
-    debug_log("Checking if user exists by email", $test_user['email']);
-    $existing_user = $db->getUserByEmail($test_user['email']);
-    debug_log("getUserByEmail result", $existing_user);
+    test_result("User Creation", $create_result, "Created test user: " . $test_user['email']);
     
-    if ($existing_user) {
-        echo "Test user already exists. Skipping registration.\n";
-    } else {
-        debug_log("Creating new test user", $test_user);
-        // Create test user
-        $result = $db->createUser(
-            $test_user['username'],
-            $test_user['email'],
-            $test_user['password'],
-            $test_user['role'],
-            $test_user['phone']
-        );
-        
-        debug_log("createUser result", $result);
-        
-        if ($result) {
-            echo "✓ Test user created successfully\n";
-        } else {
-            echo "✗ Failed to create test user\n";
-        }
-    }
+    // 3. Test User Retrieval
+    echo "\n=== User Retrieval Test ===\n";
+    $user = $db->getUserByEmail($test_user['email']);
+    test_result("User Retrieval by Email", $user !== false, "Found user: " . print_r($user, true));
     
-    echo "\n<h3>2. Testing User Authentication</h3>";
+    // 4. Test Authentication
+    echo "\n=== Authentication Test ===\n";
     
     // Test correct credentials
-    echo "Testing with correct credentials:\n";
-    debug_log("Attempting authentication with correct credentials", [
-        'email' => $test_user['email'],
-        'role' => $test_user['role']
-    ]);
-    
     $auth_result = $db->authenticateUser($test_user['email'], $test_user['password'], $test_user['role']);
-    debug_log("Authentication result", $auth_result);
+    test_result("Authentication with Correct Credentials", $auth_result !== false, 
+        $auth_result ? "Authenticated user: " . print_r($auth_result, true) : "Authentication failed");
     
-    if ($auth_result) {
-        echo "✓ Authentication successful with correct credentials\n";
-        echo "User data: " . print_r($auth_result, true) . "\n";
-    } else {
-        echo "✗ Authentication failed with correct credentials\n";
-    }
+    // Test wrong password
+    $wrong_pass = $db->authenticateUser($test_user['email'], 'WrongPassword123!', $test_user['role']);
+    test_result("Authentication with Wrong Password", $wrong_pass === false, "Correctly rejected wrong password");
     
-    // Test incorrect password
-    echo "\nTesting with incorrect password:\n";
-    debug_log("Attempting authentication with incorrect password");
-    $auth_result = $db->authenticateUser($test_user['email'], 'wrongpassword', $test_user['role']);
-    debug_log("Authentication result with wrong password", $auth_result);
+    // Test wrong role
+    $wrong_role = $db->authenticateUser($test_user['email'], $test_user['password'], 'barber');
+    test_result("Authentication with Wrong Role", $wrong_role === false, "Correctly rejected wrong role");
     
-    if ($auth_result) {
-        echo "✗ Authentication succeeded with incorrect password (this is wrong!)\n";
-    } else {
-        echo "✓ Authentication correctly failed with incorrect password\n";
-    }
+    // Test non-existent user
+    $non_existent = $db->authenticateUser('nonexistent@example.com', 'password123', 'customer');
+    test_result("Authentication with Non-existent User", $non_existent === false, "Correctly rejected non-existent user");
     
-    // Test incorrect email
-    echo "\nTesting with incorrect email:\n";
-    debug_log("Attempting authentication with incorrect email");
-    $auth_result = $db->authenticateUser('wrong@email.com', $test_user['password'], $test_user['role']);
-    debug_log("Authentication result with wrong email", $auth_result);
+    // 5. Test Session Handling
+    echo "\n=== Session Handling Test ===\n";
+    session_start();
+    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['email'] = $user['email'];
+    $_SESSION['role'] = $user['role'];
     
-    if ($auth_result) {
-        echo "✗ Authentication succeeded with incorrect email (this is wrong!)\n";
-    } else {
-        echo "✓ Authentication correctly failed with incorrect email\n";
-    }
+    test_result("Session Variables Set", 
+        isset($_SESSION['user_id']) && 
+        isset($_SESSION['username']) && 
+        isset($_SESSION['email']) && 
+        isset($_SESSION['role']),
+        "Session data: " . print_r($_SESSION, true)
+    );
     
-    // Test incorrect role
-    echo "\nTesting with incorrect role:\n";
-    debug_log("Attempting authentication with incorrect role");
-    $auth_result = $db->authenticateUser($test_user['email'], $test_user['password'], 'barber');
-    debug_log("Authentication result with wrong role", $auth_result);
+    // 6. Clean up test user
+    echo "\n=== Cleanup Test ===\n";
+    $stmt = $db->getConnection()->prepare("DELETE FROM users WHERE email = ?");
+    $stmt->bind_param("s", $test_user['email']);
+    $cleanup_result = $stmt->execute();
+    test_result("Test User Cleanup", $cleanup_result, "Removed test user");
     
-    if ($auth_result) {
-        echo "✗ Authentication succeeded with incorrect role (this is wrong!)\n";
-    } else {
-        echo "✓ Authentication correctly failed with incorrect role\n";
-    }
+    // 7. Test Default Users
+    echo "\n=== Default Users Test ===\n";
     
-    echo "\n<h3>3. Testing User Retrieval</h3>";
+    // Test admin user
+    $admin = $db->getUserByEmail('admin@barbershop.com');
+    test_result("Default Admin User", $admin !== false, "Admin user exists");
     
-    // Test getUserByEmail
-    echo "Testing getUserByEmail:\n";
-    debug_log("Attempting to get user by email", $test_user['email']);
-    $user = $db->getUserByEmail($test_user['email']);
-    debug_log("getUserByEmail result", $user);
+    // Test default barber
+    $barber = $db->getUserByEmail('barber@barbershop.com');
+    test_result("Default Barber User", $barber !== false, "Default barber exists");
     
-    if ($user) {
-        echo "✓ Successfully retrieved user by email\n";
-        echo "User data: " . print_r($user, true) . "\n";
-    } else {
-        echo "✗ Failed to retrieve user by email\n";
-    }
-    
-    // Test getUserByUsername
-    echo "\nTesting getUserByUsername:\n";
-    debug_log("Attempting to get user by username", $test_user['username']);
-    $user = $db->getUserByUsername($test_user['username']);
-    debug_log("getUserByUsername result", $user);
-    
-    if ($user) {
-        echo "✓ Successfully retrieved user by username\n";
-        echo "User data: " . print_r($user, true) . "\n";
-    } else {
-        echo "✗ Failed to retrieve user by username\n";
-    }
+    // 8. System Information
+    echo "\n=== System Information ===\n";
+    echo "PHP Version: " . PHP_VERSION . "\n";
+    echo "MySQL Version: " . $db->getConnection()->server_info . "\n";
+    echo "Session Save Path: " . session_save_path() . "\n";
+    echo "Session Status: " . session_status() . "\n";
     
 } catch (Exception $e) {
     echo "\n[ERROR] " . $e->getMessage() . "\n";
     echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
-    
-    // Additional error information
-    echo "\nPHP Version: " . PHP_VERSION . "\n";
-    echo "MySQL Version: " . $db->getConnection()->server_info . "\n";
-    echo "Error reporting level: " . error_reporting() . "\n";
-    echo "Display errors: " . ini_get('display_errors') . "\n";
-    echo "Log errors: " . ini_get('log_errors') . "\n";
-    echo "Error log: " . ini_get('error_log') . "\n";
 }
 
 echo "</pre>";
