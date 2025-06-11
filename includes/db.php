@@ -831,54 +831,61 @@ class Database {
                 throw new Exception("Invalid barber_id: " . $barber_id);
             }
 
-            // Delete existing schedule
-            $deleteQuery = "DELETE FROM barber_schedule WHERE barber_id = ?";
-            error_log("Executing delete query: " . $deleteQuery);
-            
-            $deleteStmt = $this->conn->prepare($deleteQuery);
-            if (!$deleteStmt) {
-                throw new Exception("Error preparing delete statement: " . $this->conn->error);
-            }
-            
-            $deleteStmt->bind_param("i", $barber_id);
-            if (!$deleteStmt->execute()) {
-                throw new Exception("Error deleting existing schedule: " . $deleteStmt->error);
-            }
-            error_log("Successfully deleted existing schedule");
+            // Begin transaction
+            $this->conn->begin_transaction();
 
-            // Insert new schedule
-            $insertQuery = "INSERT INTO barber_schedule (barber_id, day_of_week, start_hour, end_hour, is_available) VALUES (?, ?, ?, ?, ?)";
-            error_log("Preparing insert query: " . $insertQuery);
-            
-            $insertStmt = $this->conn->prepare($insertQuery);
-            if (!$insertStmt) {
-                throw new Exception("Error preparing insert statement: " . $this->conn->error);
-            }
-
-            foreach ($schedule as $day => $data) {
-                error_log("Processing day: " . $day . " with data: " . print_r($data, true));
+            try {
+                // Delete existing schedule
+                $deleteQuery = "DELETE FROM barber_schedule WHERE barber_id = ?";
+                error_log("Executing delete query: " . $deleteQuery);
                 
-                // Convert time to hours
-                $start_hour = (int)date('G', strtotime($data['start']));
-                $end_hour = (int)date('G', strtotime($data['end']));
-                $is_available = $data['status'] === 'available' ? 1 : 0;
-
-                $insertStmt->bind_param("isiii", 
-                    $barber_id,
-                    $day,
-                    $start_hour,
-                    $end_hour,
-                    $is_available
-                );
-                
-                if (!$insertStmt->execute()) {
-                    throw new Exception("Error inserting schedule for $day: " . $insertStmt->error);
+                $deleteStmt = $this->conn->prepare($deleteQuery);
+                if (!$deleteStmt) {
+                    throw new Exception("Error preparing delete statement: " . $this->conn->error);
                 }
-                error_log("Successfully inserted schedule for " . $day);
-            }
+                
+                $deleteStmt->bind_param("i", $barber_id);
+                if (!$deleteStmt->execute()) {
+                    throw new Exception("Error deleting existing schedule: " . $deleteStmt->error);
+                }
+                error_log("Successfully deleted existing schedule");
 
-            error_log("Successfully completed schedule update");
-            return true;
+                // Insert new schedule
+                $insertQuery = "INSERT INTO barber_schedule (barber_id, day_of_week, start_time, end_time, status) VALUES (?, ?, ?, ?, ?)";
+                error_log("Preparing insert query: " . $insertQuery);
+                
+                $insertStmt = $this->conn->prepare($insertQuery);
+                if (!$insertStmt) {
+                    throw new Exception("Error preparing insert statement: " . $this->conn->error);
+                }
+
+                foreach ($schedule as $day => $data) {
+                    error_log("Processing day: " . $day . " with data: " . print_r($data, true));
+                    
+                    $insertStmt->bind_param("issss", 
+                        $barber_id,
+                        $day,
+                        $data['start'],
+                        $data['end'],
+                        $data['status']
+                    );
+                    
+                    if (!$insertStmt->execute()) {
+                        throw new Exception("Error inserting schedule for $day: " . $insertStmt->error);
+                    }
+                    error_log("Successfully inserted schedule for " . $day);
+                }
+
+                // Commit transaction
+                $this->conn->commit();
+                error_log("Successfully completed schedule update");
+                return true;
+
+            } catch (Exception $e) {
+                // Rollback transaction on error
+                $this->conn->rollback();
+                throw $e;
+            }
 
         } catch (Exception $e) {
             error_log("Error updating barber schedule: " . $e->getMessage());
