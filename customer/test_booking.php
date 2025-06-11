@@ -196,7 +196,25 @@ try {
 // Test 11: Verify Barber Schedules Data
 echo "<h3>Test 11: Verify Barber Schedules Data</h3>";
 $stmt = $db->getConnection()->prepare("SELECT * FROM barber_schedules WHERE barber_id = ?");
-$stmt->bind_param("i", $barber['id']);
+if ($stmt === false) {
+    echo "<div style='color: red;'>✗ Error preparing statement: " . $db->getConnection()->error . "</div>";
+    echo "<div style='color: red;'>✗ SQL State: " . $db->getConnection()->sqlstate . "</div>";
+    echo "<div style='color: red;'>✗ Error Code: " . $db->getConnection()->errno . "</div>";
+    exit;
+}
+
+// Get the first barber's ID if not already set
+if (!isset($barber_id)) {
+    $barber = $db->getSingleBarber();
+    if ($barber) {
+        $barber_id = $barber['id'];
+    } else {
+        echo "<div style='color: red;'>✗ No barber found in the system</div>";
+        exit;
+    }
+}
+
+$stmt->bind_param("i", $barber_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
