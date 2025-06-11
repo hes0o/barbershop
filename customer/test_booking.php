@@ -196,28 +196,52 @@ try {
 // Test 11: Verify Barber Schedules Data
 echo "<h3>Test 11: Verify Barber Schedules Data</h3>";
 $stmt = $db->getConnection()->prepare("SELECT * FROM barber_schedule WHERE barber_id = ?");
+if ($stmt === false) {
+    echo "<div style='color: red;'>✗ Error preparing statement: " . $db->getConnection()->error . "</div>";
+    exit;
+}
+
+// Get the first barber's ID if not already set
+if (!isset($barber_id)) {
+    $barber = $db->getSingleBarber();
+    if ($barber) {
+        $barber_id = $barber['id'];
+    } else {
+        echo "<div style='color: red;'>✗ No barber found in the system</div>";
+        exit;
+    }
+}
+
 $stmt->bind_param("i", $barber_id);
 $stmt->execute();
-$result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    echo "<div style='color: green;'>✓ Found " . $result->num_rows . " schedule entries</div>";
-    echo "<table border='1' style='margin-top: 10px;'>";
-    echo "<tr><th>ID</th><th>Barber ID</th><th>Day</th><th>Start Time</th><th>End Time</th><th>Status</th></tr>";
-    while ($row = $result->fetch_assoc()) {
-        echo "<tr>";
-        echo "<td>" . $row['id'] . "</td>";
-        echo "<td>" . $row['barber_id'] . "</td>";
-        echo "<td>" . $row['day_of_week'] . "</td>";
-        echo "<td>" . $row['start_time'] . "</td>";
-        echo "<td>" . $row['end_time'] . "</td>";
-        echo "<td>" . $row['status'] . "</td>";
-        echo "</tr>";
-    }
-    echo "</table>";
-} else {
-    echo "<div style='color: red;'>✗ No schedule entries found</div>";
+// Bind result variables
+$stmt->bind_result($id, $barber_id, $day_of_week, $start_time, $end_time, $status, $created_at, $updated_at);
+
+echo "<table border='1' style='margin-top: 10px;'>";
+echo "<tr><th>ID</th><th>Barber ID</th><th>Day</th><th>Start Time</th><th>End Time</th><th>Status</th></tr>";
+
+$found_entries = false;
+while ($stmt->fetch()) {
+    $found_entries = true;
+    echo "<tr>";
+    echo "<td>" . $id . "</td>";
+    echo "<td>" . $barber_id . "</td>";
+    echo "<td>" . $day_of_week . "</td>";
+    echo "<td>" . $start_time . "</td>";
+    echo "<td>" . $end_time . "</td>";
+    echo "<td>" . $status . "</td>";
+    echo "</tr>";
 }
+
+echo "</table>";
+
+if (!$found_entries) {
+    echo "<div style='color: red;'>✗ No schedule entries found</div>";
+} else {
+    echo "<div style='color: green;'>✓ Found schedule entries</div>";
+}
+
 $stmt->close();
 
 // Add a form to test the booking process
