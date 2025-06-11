@@ -85,16 +85,25 @@ try {
     echo "\n=== Default Data Test ===\n";
     
     // Check for admin user
-    $result = $conn->query("SELECT * FROM users WHERE role = 'admin' LIMIT 1");
-    test_result("Admin user exists", $result->num_rows > 0);
+    $stmt = $conn->prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+    $stmt->execute();
+    $stmt->bind_result($admin_id);
+    $admin_exists = $stmt->fetch();
+    test_result("Admin user exists", $admin_exists);
     
     // Check for default barber
-    $result = $conn->query("SELECT * FROM users WHERE role = 'barber' LIMIT 1");
-    test_result("Default barber exists", $result->num_rows > 0);
+    $stmt = $conn->prepare("SELECT id FROM users WHERE role = 'barber' LIMIT 1");
+    $stmt->execute();
+    $stmt->bind_result($barber_id);
+    $barber_exists = $stmt->fetch();
+    test_result("Default barber exists", $barber_exists);
     
     // Check for services
-    $result = $conn->query("SELECT * FROM services LIMIT 1");
-    test_result("Default services exist", $result->num_rows > 0);
+    $stmt = $conn->prepare("SELECT id FROM services LIMIT 1");
+    $stmt->execute();
+    $stmt->bind_result($service_id);
+    $service_exists = $stmt->fetch();
+    test_result("Default services exist", $service_exists);
     
     // 6. Test Database Functions
     echo "\n=== Database Functions Test ===\n";
@@ -123,18 +132,30 @@ try {
     
     if ($create_result) {
         // Test user retrieval
-        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt = $conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE email = ?");
         $stmt->bind_param("s", $test_user['email']);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
         
-        test_result("User retrieval", $user !== null, $user ? "Found user" : "User not found");
+        // Bind the result variables
+        $stmt->bind_result($id, $username, $email, $password, $role, $phone);
         
-        // Test password verification
-        if ($user) {
+        // Fetch the result
+        if ($stmt->fetch()) {
+            $user = [
+                'id' => $id,
+                'username' => $username,
+                'email' => $email,
+                'password' => $password,
+                'role' => $role,
+                'phone' => $phone
+            ];
+            test_result("User retrieval", true, "Found user");
+            
+            // Test password verification
             $password_verify = password_verify($test_user['password'], $user['password']);
             test_result("Password verification", $password_verify, $password_verify ? "Password verified" : "Password verification failed");
+        } else {
+            test_result("User retrieval", false, "User not found");
         }
         
         // Clean up test user
