@@ -872,14 +872,14 @@ class Database {
                 return [];
             }
             
-            $result = $stmt->get_result();
+            $stmt->bind_result($day_of_week, $start_hour, $end_hour, $is_available);
             $schedule = [];
             
-            while ($row = $result->fetch_assoc()) {
-                $schedule[$row['day_of_week']] = [
-                    'start' => sprintf('%02d:00', $row['start_hour']),
-                    'end' => sprintf('%02d:00', $row['end_hour']),
-                    'status' => $row['is_available'] ? 'available' : 'unavailable'
+            while ($stmt->fetch()) {
+                $schedule[$day_of_week] = [
+                    'start' => sprintf('%02d:00', $start_hour),
+                    'end' => sprintf('%02d:00', $end_hour),
+                    'status' => $is_available ? 'available' : 'unavailable'
                 ];
             }
             
@@ -897,6 +897,7 @@ class Database {
                 }
             }
             
+            $stmt->close();
             return $schedule;
         } catch (Exception $e) {
             error_log("Error getting barber schedule: " . $e->getMessage());

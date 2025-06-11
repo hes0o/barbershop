@@ -145,17 +145,32 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
             background-color: #f8d7da;
             color: #721c24;
         }
+        .sign-out-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .sign-out-btn:hover {
+            background-color: #c82333;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body class="bg-light">
+    <a href="<?php echo dirname($_SERVER['SCRIPT_NAME']) === '/barber' ? '../logout.php' : BASE_URL . '/logout.php'; ?>" class="sign-out-btn">
+        <i class="fas fa-sign-out-alt"></i> Sign Out
+    </a>
     <div class="container-fluid py-4">
-        <!-- Sign Out Button -->
-        <div class="d-flex justify-content-end mb-4">
-            <a href="../logout.php" class="btn btn-outline-danger">
-                <i class="fas fa-sign-out-alt"></i> Sign Out
-            </a>
-        </div>
-
         <!-- Stats Section -->
         <div class="dashboard-stats">
             <div class="stat-card">
