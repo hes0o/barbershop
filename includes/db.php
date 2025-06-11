@@ -605,7 +605,7 @@ class Database {
             // Check weekly schedule
             $stmt = $this->conn->prepare("
                 SELECT start_time, end_time, status 
-                FROM barber_schedule 
+                FROM barber_schedules 
                 WHERE barber_id = ? AND day_of_week = ?
             ");
             

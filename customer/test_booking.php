@@ -193,6 +193,31 @@ try {
     echo "Error checking available dates: " . $e->getMessage() . "<br>";
 }
 
+// Test 11: Verify Barber Schedules Data
+echo "<h3>Test 11: Verify Barber Schedules Data</h3>";
+$stmt = $db->conn->prepare("SELECT * FROM barber_schedules WHERE barber_id = ?");
+$stmt->bind_param("i", $barber['id']);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows > 0) {
+    echo "<div style='color: green;'>✓ Found " . $result->num_rows . " schedule entries</div>";
+    echo "<table border='1' style='margin: 10px 0;'>";
+    echo "<tr><th>Day</th><th>Start Time</th><th>End Time</th><th>Status</th></tr>";
+    while ($row = $result->fetch_assoc()) {
+        echo "<tr>";
+        echo "<td>" . htmlspecialchars($row['day_of_week']) . "</td>";
+        echo "<td>" . htmlspecialchars($row['start_time']) . "</td>";
+        echo "<td>" . htmlspecialchars($row['end_time']) . "</td>";
+        echo "<td>" . htmlspecialchars($row['status']) . "</td>";
+        echo "</tr>";
+    }
+    echo "</table>";
+} else {
+    echo "<div style='color: red;'>✗ No schedule entries found</div>";
+}
+$stmt->close();
+
 // Add a form to test the booking process
 echo "<h2>Test Booking Form</h2>";
 echo "<form method='post' action='book_appointment.php'>";
