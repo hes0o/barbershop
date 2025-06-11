@@ -842,28 +842,45 @@ class Database {
 
     public function authenticateUser($email, $password, $role) {
         try {
+            error_log("Attempting to authenticate user: email=$email, role=$role");
+            
             $stmt = $this->conn->prepare("SELECT id, username, email, password, role FROM users WHERE email = ? AND role = ?");
             if (!$stmt) {
                 error_log("Error preparing authenticateUser statement: " . $this->conn->error);
                 return false;
             }
+            
             $stmt->bind_param("ss", $email, $role);
-            $stmt->execute();
+            if (!$stmt->execute()) {
+                error_log("Error executing authenticateUser statement: " . $stmt->error);
+                return false;
+            }
             
             // Bind the result variables
             $stmt->bind_result($id, $username, $db_email, $db_password, $db_role);
             
             // Fetch the result
             if ($stmt->fetch()) {
+                error_log("User found in database. Verifying password...");
+                error_log("Stored password hash: " . $db_password);
+                error_log("Provided password: " . $password);
+                
                 if (password_verify($password, $db_password)) {
+                    error_log("Password verification successful");
                     return [
                         'id' => $id,
                         'username' => $username,
                         'email' => $db_email,
                         'role' => $db_role
                     ];
+                } else {
+                    error_log("Password verification failed");
                 }
+            } else {
+                error_log("No user found with email=$email and role=$role");
             }
+            
+            $stmt->close();
             return false;
         } catch (Exception $e) {
             error_log("Authentication error: " . $e->getMessage());

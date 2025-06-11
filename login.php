@@ -21,13 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $password = $_POST['password'] ?? '';
             $role = $_POST['role'] ?? '';
 
+            error_log("Login attempt - Email: $email, Role: $role");
+
             if (empty($email) || empty($password) || empty($role)) {
                 $error = 'Please fill in all fields';
+                error_log("Login failed - Empty fields");
             } else {
                 $db = new Database();
                 $user = $db->authenticateUser($email, $password, $role);
 
                 if ($user) {
+                    error_log("Login successful for user: " . print_r($user, true));
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['role'] = $role;
                     $_SESSION['username'] = $user['username'];
@@ -40,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     exit;
                 } else {
+                    error_log("Login failed - Invalid credentials");
                     $error = 'Invalid email or password';
                 }
             }
