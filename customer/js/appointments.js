@@ -12,6 +12,12 @@ async function bookAppointment(serviceId, date, time) {
             })
         });
 
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+
         const data = await response.json();
         
         if (!data.success) {
@@ -37,6 +43,8 @@ async function bookAppointment(serviceId, date, time) {
         return data;
     } catch (error) {
         console.error('Error booking appointment:', error);
+        // Show error to user
+        alert(error.message || 'Failed to book appointment. Please try again.');
         throw error;
     }
 } 
