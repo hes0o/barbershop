@@ -225,8 +225,8 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                     foreach ($days as $day) {
                                         $dayLower = strtolower($day);
                                         $daySchedule = $weekly_schedule[$dayLower] ?? [
-                                            'start' => '09:00',
-                                            'end' => '17:00',
+                                            'start_time' => '09:00',
+                                            'end_time' => '17:00',
                                             'status' => 'available'
                                         ];
                                         ?>
@@ -234,14 +234,14 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                             <td><?php echo $day; ?></td>
                                             <td>
                                                 <input type="time" class="form-control" 
-                                                       name="schedule[<?php echo $dayLower; ?>][start]" 
-                                                       value="<?php echo htmlspecialchars($daySchedule['start']); ?>"
+                                                       name="schedule[<?php echo $dayLower; ?>][start_time]" 
+                                                       value="<?php echo htmlspecialchars($daySchedule['start_time']); ?>"
                                                        required>
                                             </td>
                                             <td>
                                                 <input type="time" class="form-control" 
-                                                       name="schedule[<?php echo $dayLower; ?>][end]" 
-                                                       value="<?php echo htmlspecialchars($daySchedule['end']); ?>"
+                                                       name="schedule[<?php echo $dayLower; ?>][end_time]" 
+                                                       value="<?php echo htmlspecialchars($daySchedule['end_time']); ?>"
                                                        required>
                                             </td>
                                             <td>
