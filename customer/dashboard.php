@@ -660,7 +660,7 @@ function getStatusColor($status) {
         console.log('Sending booking request:', requestData);
 
         try {
-            const response = await fetch('book_appointment.php', {
+            const response = await fetch('<?php echo BASE_URL; ?>/customer/book_appointment.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
