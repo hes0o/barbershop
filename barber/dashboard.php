@@ -233,16 +233,34 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                         <tr>
                                             <td><?php echo $day; ?></td>
                                             <td>
-                                                <input type="time" class="form-control" 
-                                                       name="schedule[<?php echo $dayLower; ?>][start_time]" 
-                                                       value="<?php echo htmlspecialchars($daySchedule['start_time']); ?>"
-                                                       required>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Start Time</label>
+                                                    <select class="form-select" name="schedule[<?php echo $dayLower; ?>][start_time]" required>
+                                                        <option value="">Select time</option>
+                                                        <?php
+                                                        for ($h = 9; $h <= 16; $h++) {
+                                                            $time = sprintf('%02d:00', $h);
+                                                            $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
+                                                            echo "<option value=\"$time\" $selected>$time</option>";
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                </div>
                                             </td>
                                             <td>
-                                                <input type="time" class="form-control" 
-                                                       name="schedule[<?php echo $dayLower; ?>][end_time]" 
-                                                       value="<?php echo htmlspecialchars($daySchedule['end_time']); ?>"
-                                                       required>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">End Time</label>
+                                                    <select class="form-select" name="schedule[<?php echo $dayLower; ?>][end_time]" required>
+                                                        <option value="">Select time</option>
+                                                        <?php
+                                                        for ($h = 10; $h <= 17; $h++) {
+                                                            $time = sprintf('%02d:00', $h);
+                                                            $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
+                                                            echo "<option value=\"$time\" $selected>$time</option>";
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                </div>
                                             </td>
                                             <td>
                                                 <select class="form-select" 
