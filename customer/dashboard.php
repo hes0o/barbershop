@@ -652,20 +652,46 @@ function getStatusColor($status) {
             return;
         }
 
+        // Format date to YYYY-MM-DD (direct format, no timezone issues)
+        const [year, month, day] = selectedDate.split('-');
+        const formattedDate = `${year}-${month}-${day}`;
+        
+        // Format time to HH:MM
+        const formattedTime = selectedTime.includes(':') ? selectedTime : 
+            `${selectedTime.substring(0, 2)}:${selectedTime.substring(2, 4)}`;
+
+        // Validate service ID
+        const serviceId = parseInt(selectedService);
+        if (isNaN(serviceId)) {
+            alert('Invalid service selection');
+            return;
+        }
+
         try {
+            console.log('Sending booking request:', {
+                service_id: serviceId,
+                date: formattedDate,
+                time: formattedTime
+            });
+
             const response = await fetch('book_appointment.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    service_id: selectedService,
-                    date: selectedDate,
-                    time: selectedTime
+                    service_id: serviceId,
+                    date: formattedDate,
+                    time: formattedTime
                 })
             });
 
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
+            console.log('Booking response:', data);
             
             if (data.success) {
                 alert('Appointment booked successfully!');
