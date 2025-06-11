@@ -94,4 +94,4 @@ try {
 } catch (Exception $e) {
     echo '<h3 style="color:red;">Test Failed: ' . htmlspecialchars($e->getMessage()) . '</h3>';
     echo '<pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
-} 
+}
