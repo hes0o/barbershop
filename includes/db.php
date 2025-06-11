@@ -836,11 +836,18 @@ class Database {
                 
                 $insertStmt = $this->conn->prepare($insertQuery);
                 if (!$insertStmt) {
+                    error_log("Error preparing insert statement: " . $this->conn->error);
+                    error_log("SQL State: " . $this->conn->sqlstate);
+                    error_log("Error Code: " . $this->conn->errno);
                     throw new Exception("Error preparing insert statement: " . $this->conn->error);
                 }
 
                 foreach ($schedule as $day => $data) {
                     error_log("Processing day: " . $day . " with data: " . print_r($data, true));
+                    
+                    if (!isset($data['start_time']) || !isset($data['end_time']) || !isset($data['status'])) {
+                        throw new Exception("Missing required fields for $day");
+                    }
                     
                     $insertStmt->bind_param("issss", 
                         $barber_id,
