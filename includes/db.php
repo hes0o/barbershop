@@ -515,15 +515,15 @@ class Database {
         return false;
     }
     
-    public function updateAppointmentStatus($appointment_id, $status) {
-        error_log("Updating appointment status: ID={$appointment_id}, Status={$status}");
-        $sql = "UPDATE appointments SET status = ? WHERE id = ?";
+    public function updateAppointmentStatus($appointment_id, $status, $notes = null) {
+        error_log("Updating appointment status: ID={$appointment_id}, Status={$status}, Notes={$notes}");
+        $sql = "UPDATE appointments SET status = ?, notes = ? WHERE id = ?";
         $stmt = $this->conn->prepare($sql);
         if (!$stmt) {
             error_log("Error preparing update statement: " . $this->conn->error);
             return false;
         }
-        $stmt->bind_param("si", $status, $appointment_id);
+        $stmt->bind_param("ssi", $status, $notes, $appointment_id);
         $result = $stmt->execute();
         if (!$result) {
             error_log("Error executing update statement: " . $stmt->error);

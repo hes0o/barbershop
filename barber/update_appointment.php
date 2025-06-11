@@ -40,8 +40,11 @@ try {
 
     $db = new Database();
 
-    // Update the appointment status
-    $success = $db->updateAppointmentStatus($data['appointment_id'], $data['status']);
+    // Get the notes if provided
+    $notes = isset($data['notes']) ? $data['notes'] : null;
+
+    // Update the appointment status and notes
+    $success = $db->updateAppointmentStatus($data['appointment_id'], $data['status'], $notes);
 
     if (!$success) {
         throw new Exception('Failed to update appointment status');

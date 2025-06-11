@@ -414,6 +414,11 @@ function getStatusColor($status) {
                                             <br>
                                             <i class="fas fa-dollar-sign me-2 text-primary"></i>
                                             Price: $<?php echo number_format($appointment['price'], 2); ?>
+                                            <?php if ($appointment['status'] === 'cancelled' && !empty($appointment['notes'])): ?>
+                                            <br>
+                                            <i class="fas fa-info-circle me-2 text-danger"></i>
+                                            <span class="text-danger">Cancellation Note: <?php echo htmlspecialchars($appointment['notes']); ?></span>
+                                            <?php endif; ?>
                                         </p>
                                         <?php if ($appointment['status'] === 'pending'): ?>
                                             <button class="btn btn-danger btn-sm" onclick="cancelAppointment(<?php echo $appointment['id']; ?>)">

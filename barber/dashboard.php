@@ -477,10 +477,62 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
     });
 
     function updateAppointmentStatus(appointmentId, status) {
-        if (!confirm('Are you sure you want to ' + status + ' this appointment?')) {
-            return;
+        if (status === 'cancelled') {
+            // Show modal for cancellation note
+            const modalHtml = `
+                <div class="modal fade" id="cancelModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Cancel Appointment</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="cancelNote" class="form-label">Reason for cancellation (optional)</label>
+                                    <textarea class="form-control" id="cancelNote" rows="3" placeholder="Enter reason for cancellation..."></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-danger" onclick="confirmCancellation(${appointmentId})">Cancel Appointment</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('cancelModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add new modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+            modal.show();
+        } else {
+            // For other status updates, proceed as normal
+            if (!confirm('Are you sure you want to ' + status + ' this appointment?')) {
+                return;
+            }
+            sendStatusUpdate(appointmentId, status);
         }
+    }
 
+    function confirmCancellation(appointmentId) {
+        const note = document.getElementById('cancelNote').value;
+        sendStatusUpdate(appointmentId, 'cancelled', note);
+        
+        // Hide modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
+        modal.hide();
+    }
+
+    function sendStatusUpdate(appointmentId, status, note = null) {
         fetch('update_appointment.php', {
             method: 'POST',
             headers: {
@@ -488,7 +540,8 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
             },
             body: JSON.stringify({
                 appointment_id: appointmentId,
-                status: status
+                status: status,
+                notes: note
             })
         })
         .then(response => response.json())
