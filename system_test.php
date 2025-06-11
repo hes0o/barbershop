@@ -86,24 +86,39 @@ try {
     
     // Check for admin user
     $stmt = $conn->prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
-    $stmt->execute();
-    $stmt->bind_result($admin_id);
-    $admin_exists = $stmt->fetch();
-    test_result("Admin user exists", $admin_exists);
+    if ($stmt === false) {
+        test_result("Admin user check prepare failed", false, "Error: " . $conn->error);
+    } else {
+        $stmt->execute();
+        $stmt->bind_result($admin_id);
+        $admin_exists = $stmt->fetch();
+        test_result("Admin user exists", $admin_exists);
+        $stmt->close();
+    }
     
     // Check for default barber
     $stmt = $conn->prepare("SELECT id FROM users WHERE role = 'barber' LIMIT 1");
-    $stmt->execute();
-    $stmt->bind_result($barber_id);
-    $barber_exists = $stmt->fetch();
-    test_result("Default barber exists", $barber_exists);
+    if ($stmt === false) {
+        test_result("Barber check prepare failed", false, "Error: " . $conn->error);
+    } else {
+        $stmt->execute();
+        $stmt->bind_result($barber_id);
+        $barber_exists = $stmt->fetch();
+        test_result("Default barber exists", $barber_exists);
+        $stmt->close();
+    }
     
     // Check for services
     $stmt = $conn->prepare("SELECT id FROM services LIMIT 1");
-    $stmt->execute();
-    $stmt->bind_result($service_id);
-    $service_exists = $stmt->fetch();
-    test_result("Default services exist", $service_exists);
+    if ($stmt === false) {
+        test_result("Services check prepare failed", false, "Error: " . $conn->error);
+    } else {
+        $stmt->execute();
+        $stmt->bind_result($service_id);
+        $service_exists = $stmt->fetch();
+        test_result("Default services exist", $service_exists);
+        $stmt->close();
+    }
     
     // 6. Test Database Functions
     echo "\n=== Database Functions Test ===\n";
@@ -118,50 +133,65 @@ try {
     ];
     
     $stmt = $conn->prepare("INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)");
-    $hashed_password = password_hash($test_user['password'], PASSWORD_DEFAULT);
-    $stmt->bind_param("sssss", 
-        $test_user['username'],
-        $test_user['email'],
-        $hashed_password,
-        $test_user['role'],
-        $test_user['phone']
-    );
-    
-    $create_result = $stmt->execute();
-    test_result("User creation", $create_result, $create_result ? "Created test user" : $stmt->error);
-    
-    if ($create_result) {
-        // Test user retrieval
-        $stmt = $conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE email = ?");
-        $stmt->bind_param("s", $test_user['email']);
-        $stmt->execute();
+    if ($stmt === false) {
+        test_result("User creation prepare failed", false, "Error: " . $conn->error);
+    } else {
+        $hashed_password = password_hash($test_user['password'], PASSWORD_DEFAULT);
+        $stmt->bind_param("sssss", 
+            $test_user['username'],
+            $test_user['email'],
+            $hashed_password,
+            $test_user['role'],
+            $test_user['phone']
+        );
         
-        // Bind the result variables
-        $stmt->bind_result($id, $username, $email, $password, $role, $phone);
+        $create_result = $stmt->execute();
+        test_result("User creation", $create_result, $create_result ? "Created test user" : $stmt->error);
+        $stmt->close();
         
-        // Fetch the result
-        if ($stmt->fetch()) {
-            $user = [
-                'id' => $id,
-                'username' => $username,
-                'email' => $email,
-                'password' => $password,
-                'role' => $role,
-                'phone' => $phone
-            ];
-            test_result("User retrieval", true, "Found user");
-            
-            // Test password verification
-            $password_verify = password_verify($test_user['password'], $user['password']);
-            test_result("Password verification", $password_verify, $password_verify ? "Password verified" : "Password verification failed");
-        } else {
-            test_result("User retrieval", false, "User not found");
+        if ($create_result) {
+            // Test user retrieval
+            $stmt = $conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE email = ?");
+            if ($stmt === false) {
+                test_result("User retrieval prepare failed", false, "Error: " . $conn->error);
+            } else {
+                $stmt->bind_param("s", $test_user['email']);
+                $stmt->execute();
+                
+                // Bind the result variables
+                $stmt->bind_result($id, $username, $email, $password, $role, $phone);
+                
+                // Fetch the result
+                if ($stmt->fetch()) {
+                    $user = [
+                        'id' => $id,
+                        'username' => $username,
+                        'email' => $email,
+                        'password' => $password,
+                        'role' => $role,
+                        'phone' => $phone
+                    ];
+                    test_result("User retrieval", true, "Found user");
+                    
+                    // Test password verification
+                    $password_verify = password_verify($test_user['password'], $user['password']);
+                    test_result("Password verification", $password_verify, $password_verify ? "Password verified" : "Password verification failed");
+                } else {
+                    test_result("User retrieval", false, "User not found");
+                }
+                $stmt->close();
+                
+                // Clean up test user
+                $stmt = $conn->prepare("DELETE FROM users WHERE email = ?");
+                if ($stmt === false) {
+                    test_result("User cleanup prepare failed", false, "Error: " . $conn->error);
+                } else {
+                    $stmt->bind_param("s", $test_user['email']);
+                    $stmt->execute();
+                    $stmt->close();
+                }
+            }
         }
-        
-        // Clean up test user
-        $stmt = $conn->prepare("DELETE FROM users WHERE email = ?");
-        $stmt->bind_param("s", $test_user['email']);
-        $stmt->execute();
     }
     
     // 7. Test Session Configuration
