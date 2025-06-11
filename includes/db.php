@@ -1051,5 +1051,14 @@ class Database {
         }
         return $result->fetch_all(MYSQLI_ASSOC);
     }
+
+    public function updateUser($id, $username, $email, $phone) {
+        $stmt = $this->conn->prepare("UPDATE users SET username = ?, email = ?, phone = ? WHERE id = ?");
+        if (!$stmt) return false;
+        $stmt->bind_param("sssi", $username, $email, $phone, $id);
+        $result = $stmt->execute();
+        $stmt->close();
+        return $result;
+    }
 }
 ?> 
