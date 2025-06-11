@@ -14,12 +14,12 @@ define('DB_PASS', 'Hassan@Chawa981');
 define('DB_NAME', 'shawacom_Barber');
 
 // Application configuration
-define('BASE_URL', 'https://customprojects.shawa.com.tr');
+define('BASE_URL', ''); // Empty string for relative paths
 define('SITE_NAME', 'BarberShop');
 
-// Error reporting - Set to 0 in production
-error_reporting(0);
-ini_set('display_errors', 0);
+// Error reporting - Enable for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Time zone
 date_default_timezone_set('UTC');
