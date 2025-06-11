@@ -3,9 +3,9 @@ session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 
-// Disable error display but enable logging
+// Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
 ini_set('log_errors', 1);
 
 // Set headers for JSON response
@@ -69,25 +69,42 @@ try {
 
     // Create appointment
     $db = new Database();
+    error_log("Database connection created");
     
     // Get barber first to avoid potential null reference
     $barber = $db->getSingleBarber();
+    error_log("Barber data: " . print_r($barber, true));
+    
     if (!$barber) {
         throw new Exception('No barber available at this time');
     }
 
     // Validate service exists
     $service = $db->getServiceById($service_id);
+    error_log("Service data: " . print_r($service, true));
+    
     if (!$service) {
         throw new Exception('Selected service is not available');
     }
 
     // Check if barber is available at this time
-    if (!$db->isBarberAvailable($barber['id'], $data['date'], $data['time'])) {
+    error_log("Checking barber availability for date: {$data['date']}, time: {$data['time']}");
+    $is_available = $db->isBarberAvailable($barber['id'], $data['date'], $data['time']);
+    error_log("Barber availability result: " . ($is_available ? 'true' : 'false'));
+    
+    if (!$is_available) {
         throw new Exception('Selected time slot is not available');
     }
 
     // Create the appointment
+    error_log("Attempting to create appointment with data: " . print_r([
+        'user_id' => $_SESSION['user_id'],
+        'barber_id' => $barber['id'],
+        'service_id' => $service_id,
+        'date' => $data['date'],
+        'time' => $data['time']
+    ], true));
+    
     $result = $db->createAppointment(
         $_SESSION['user_id'],
         $barber['id'],
@@ -107,6 +124,7 @@ try {
 
 } catch (Exception $e) {
     error_log("Booking error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     http_response_code(400);
     echo json_encode([
         'success' => false,
@@ -114,6 +132,7 @@ try {
     ]);
 } catch (Error $e) {
     error_log("System error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode([
         'success' => false,
