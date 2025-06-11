@@ -384,68 +384,6 @@ function getStatusColor($status) {
             </div>
         </div>
 
-        <!-- Booking Section -->
-        <div class="booking-section">
-            <h3 class="section-title">Book an Appointment</h3>
-            <div class="row">
-                <!-- Step 1: Select Date -->
-                <div class="col-md-4 mb-4">
-                    <h5 class="step-title">1. Choose a Date</h5>
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="dateSelection">
-                                <!-- Dates will be loaded here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 2: Select Time -->
-                <div class="col-md-4 mb-4">
-                    <h5 class="step-title">2. Choose a Time</h5>
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="timeSelection">
-                                <!-- Time slots will be loaded here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 3: Select Service -->
-                <div class="col-md-4 mb-4">
-                    <h5 class="step-title">3. Choose a Service</h5>
-                    <div class="row g-3" id="serviceSelection">
-                        <?php foreach ($services as $service): ?>
-                            <div class="col-12">
-                                <div class="card service-card" data-service-id="<?php echo $service['id']; ?>">
-                                    <div class="card-body">
-                                        <h5 class="card-title"><?php echo htmlspecialchars($service['name']); ?></h5>
-                                        <p class="card-text">
-                                            <small class="text-muted"><?php echo htmlspecialchars($service['description']); ?></small>
-                                        </p>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="h5 mb-0">$<?php echo number_format($service['price'], 2); ?></span>
-                                            <span class="badge bg-info"><?php echo $service['duration']; ?> mins</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Booking Summary -->
-            <div class="booking-summary">
-                <h5 class="section-title">Booking Summary</h5>
-                <div id="bookingSummary">
-                    <p class="text-muted">Please select a date, time, and service to see your booking summary.</p>
-                </div>
-                <button class="book-button" id="bookButton" disabled>Book Appointment</button>
-            </div>
-        </div>
-
         <!-- Appointments History -->
         <div class="row mb-4">
             <div class="col-md-12">
@@ -490,221 +428,65 @@ function getStatusColor($status) {
                 <?php endif; ?>
             </div>
         </div>
+
+        <!-- Simple Booking Form -->
+        <div class="booking-section mb-4">
+            <h3 class="section-title">Book an Appointment</h3>
+            <form id="simpleBookingForm" class="row g-3">
+                <div class="col-md-4">
+                    <label for="bookingDate" class="form-label">Date</label>
+                    <select class="form-select" id="bookingDate" name="date" required>
+                        <option value="">Select a date</option>
+                        <?php
+                        // Get available dates from working hours (or barbers dashboard logic)
+                        $dates = [];
+                        $today = strtotime('today');
+                        for ($i = 0; $i < 14; $i++) { // Next 2 weeks
+                            $date = strtotime("+{$i} day", $today);
+                            $dates[] = date('Y-m-d', $date);
+                        }
+                        foreach ($dates as $date) {
+                            echo '<option value="' . $date . '">' . date('l, F j, Y', strtotime($date)) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="bookingTime" class="form-label">Time</label>
+                    <select class="form-select" id="bookingTime" name="time" required>
+                        <option value="">Select a time</option>
+                        <?php
+                        // Show times from 09:00 to 17:00, one hour slots
+                        for ($h = 9; $h <= 16; $h++) {
+                            $time = sprintf('%02d:00', $h);
+                            echo '<option value="' . $time . '">' . $time . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="bookingService" class="form-label">Service</label>
+                    <select class="form-select" id="bookingService" name="service_id" required>
+                        <option value="">Select a service</option>
+                        <?php foreach ($services as $service): ?>
+                            <option value="<?php echo $service['id']; ?>">
+                                <?php echo htmlspecialchars($service['name']) . ' ($' . number_format($service['price'], 2) . ')'; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Book Appointment</button>
+                </div>
+                <div class="col-12">
+                    <div id="bookingResult"></div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    let selectedDate = null;
-    let selectedTime = null;
-    let selectedService = null;
-
-    // Load Available Dates on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        loadAvailableDates();
-    });
-
-    // Load Available Dates
-    async function loadAvailableDates() {
-        const dateSelection = document.getElementById('dateSelection');
-        dateSelection.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-
-        try {
-            const response = await fetch('get_available_dates.php');
-            const data = await response.json();
-            
-            if (data.success && data.dates && data.dates.length > 0) {
-                // Filter out past dates
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                const futureDates = data.dates.filter(date => {
-                    const dateObj = new Date(date.date);
-                    dateObj.setHours(0, 0, 0, 0);
-                    return dateObj >= today;
-                });
-
-                if (futureDates.length > 0) {
-                    let datesHTML = '<div class="d-flex flex-wrap gap-2">';
-                    futureDates.forEach(date => {
-                        datesHTML += `
-                            <button class="btn btn-outline-primary time-slot" data-date="${date.date}">
-                                ${date.day_name}<br>${date.date}
-                            </button>
-                        `;
-                    });
-                    datesHTML += '</div>';
-                    dateSelection.innerHTML = datesHTML;
-
-                    // Add click handlers
-                    document.querySelectorAll('#dateSelection .time-slot').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            document.querySelectorAll('#dateSelection .time-slot').forEach(b => b.classList.remove('selected'));
-                            this.classList.add('selected');
-                            selectedDate = this.dataset.date;
-                            loadAvailableTimes();
-                            updateBookingSummary();
-                        });
-                    });
-                } else {
-                    dateSelection.innerHTML = '<div class="alert alert-info">No available dates found.</div>';
-                }
-            } else {
-                dateSelection.innerHTML = '<div class="alert alert-info">No available dates found.</div>';
-            }
-        } catch (error) {
-            dateSelection.innerHTML = '<div class="alert alert-danger">Failed to load dates.</div>';
-        }
-    }
-
-    // Load Available Times
-    async function loadAvailableTimes() {
-        if (!selectedDate) return;
-
-        const timeSelection = document.getElementById('timeSelection');
-        timeSelection.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-
-        try {
-            const response = await fetch(`get_available_times.php?date=${selectedDate}`);
-            const data = await response.json();
-            
-            if (data.success && data.times && data.times.length > 0) {
-                let timesHTML = '<div class="d-flex flex-wrap gap-2">';
-                data.times.forEach(time => {
-                    timesHTML += `
-                        <button class="btn btn-outline-primary time-slot" data-time="${time}">
-                            ${time}
-                        </button>
-                    `;
-                });
-                timesHTML += '</div>';
-                timeSelection.innerHTML = timesHTML;
-
-                // Add click handlers
-                document.querySelectorAll('#timeSelection .time-slot').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        document.querySelectorAll('#timeSelection .time-slot').forEach(b => b.classList.remove('selected'));
-                        this.classList.add('selected');
-                        selectedTime = this.dataset.time;
-                        updateBookingSummary();
-                    });
-                });
-            } else {
-                timeSelection.innerHTML = '<div class="alert alert-info">No available times found.</div>';
-            }
-        } catch (error) {
-            timeSelection.innerHTML = '<div class="alert alert-danger">Failed to load times.</div>';
-        }
-    }
-
-    // Service Selection
-    document.querySelectorAll('.service-card').forEach(card => {
-        card.addEventListener('click', function() {
-            document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedService = this.dataset.serviceId;
-            updateBookingSummary();
-        });
-    });
-
-    // Update Booking Summary
-    function updateBookingSummary() {
-        const summary = document.getElementById('bookingSummary');
-        const bookButton = document.getElementById('bookButton');
-
-        if (selectedDate && selectedTime && selectedService) {
-            const serviceCard = document.querySelector(`.service-card[data-service-id="${selectedService}"]`);
-            const serviceName = serviceCard.querySelector('.card-title').textContent;
-            const servicePrice = serviceCard.querySelector('.h5').textContent;
-
-            summary.innerHTML = `
-                <div class="row">
-                    <div class="col-md-4">
-                        <strong>Date:</strong><br>
-                        ${selectedDate}
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Time:</strong><br>
-                        ${selectedTime}
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Service:</strong><br>
-                        ${serviceName}
-                    </div>
-                </div>
-                <hr>
-                <div class="row">
-                    <div class="col-12">
-                        <strong>Total:</strong> ${servicePrice}
-                    </div>
-                </div>
-            `;
-            bookButton.disabled = false;
-        } else {
-            summary.innerHTML = '<p class="text-muted">Please select a date, time, and service to see your booking summary.</p>';
-            bookButton.disabled = true;
-        }
-    }
-
-    // Book Appointment
-    document.getElementById('bookButton').addEventListener('click', async function() {
-        if (!selectedDate || !selectedTime || !selectedService) {
-            alert('Please select a date, time, and service');
-            return;
-        }
-
-        // Format date to YYYY-MM-DD (direct format, no timezone issues)
-        const [year, month, day] = selectedDate.split('-');
-        const formattedDate = `${year}-${month}-${day}`;
-        
-        // Format time to HH:MM
-        const formattedTime = selectedTime.includes(':') ? selectedTime : 
-            `${selectedTime.substring(0, 2)}:${selectedTime.substring(2, 4)}`;
-
-        // Validate service ID
-        const serviceId = parseInt(selectedService);
-        if (isNaN(serviceId)) {
-            alert('Invalid service selection');
-            return;
-        }
-
-        try {
-            console.log('Sending booking request:', {
-                service_id: serviceId,
-                date: formattedDate,
-                time: formattedTime
-            });
-
-            const response = await fetch('book_appointment.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    service_id: serviceId,
-                    date: formattedDate,
-                    time: formattedTime
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Booking response:', data);
-            
-            if (data.success) {
-                alert('Appointment booked successfully!');
-                location.reload();
-            } else {
-                alert(data.error || 'Failed to book appointment');
-            }
-        } catch (error) {
-            console.error('Booking error:', error);
-            alert('Error booking appointment. Please try again.');
-        }
-    });
-
     // Cancel Appointment
     function cancelAppointment(appointmentId) {
         if (confirm('Are you sure you want to cancel this appointment?')) {
@@ -728,6 +510,37 @@ function getStatusColor($status) {
             });
         }
     }
+
+    document.getElementById('simpleBookingForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const date = document.getElementById('bookingDate').value;
+        const time = document.getElementById('bookingTime').value;
+        const service_id = document.getElementById('bookingService').value;
+        const resultDiv = document.getElementById('bookingResult');
+        resultDiv.innerHTML = '';
+
+        if (!date || !time || !service_id) {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Please select date, time, and service.</div>';
+            return;
+        }
+
+        try {
+            const response = await fetch('book_appointment.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date, time, service_id: parseInt(service_id) })
+            });
+            const data = await response.json();
+            if (data.success) {
+                resultDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-danger">' + (data.error || 'Failed to book appointment') + '</div>';
+            }
+        } catch (err) {
+            resultDiv.innerHTML = '<div class="alert alert-danger">Error booking appointment. Please try again.</div>';
+        }
+    });
     </script>
 </body>
 </html> 
