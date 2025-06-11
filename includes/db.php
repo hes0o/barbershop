@@ -619,29 +619,56 @@ class Database {
                 $start_time = strtotime($weekly_schedule['start_time']);
                 $end_time = strtotime($weekly_schedule['end_time']);
                 $appointment_time = strtotime($time);
-                return $appointment_time >= $start_time && $appointment_time <= $end_time;
+                
+                // Check if time is within schedule
+                if ($appointment_time < $start_time || $appointment_time >= $end_time) {
+                    return false;
+                }
+            } else {
+                // If no schedule is set, check working hours
+                $day_of_week = date('N', strtotime($date));
+                $stmt = $this->conn->prepare("
+                    SELECT open_time, close_time, is_working 
+                    FROM working_hours 
+                    WHERE day_of_week = ?
+                ");
+                $stmt->bind_param("i", $day_of_week);
+                $stmt->execute();
+                $working_hours = $stmt->get_result()->fetch_assoc();
+                
+                if (!$working_hours || !$working_hours['is_working']) {
+                    return false;
+                }
+                
+                $start_time = strtotime($working_hours['open_time']);
+                $end_time = strtotime($working_hours['close_time']);
+                $appointment_time = strtotime($time);
+                
+                // Check if time is within working hours
+                if ($appointment_time < $start_time || $appointment_time >= $end_time) {
+                    return false;
+                }
             }
             
-            // If no schedule is set, check working hours
-            $day_of_week = date('N', strtotime($date));
+            // Check for existing appointments
             $stmt = $this->conn->prepare("
-                SELECT open_time, close_time, is_working 
-                FROM working_hours 
-                WHERE day_of_week = ?
+                SELECT COUNT(*) as count
+                FROM appointments
+                WHERE barber_id = ? 
+                AND appointment_date = ?
+                AND appointment_time = ?
+                AND status != 'cancelled'
             ");
-            $stmt->bind_param("i", $day_of_week);
+            $stmt->bind_param("iss", $barber_id, $date, $time);
             $stmt->execute();
-            $working_hours = $stmt->get_result()->fetch_assoc();
+            $result = $stmt->get_result()->fetch_assoc();
             
-            if (!$working_hours || !$working_hours['is_working']) {
+            // If there's already an appointment at this time, return false
+            if ($result['count'] > 0) {
                 return false;
             }
             
-            $start_time = strtotime($working_hours['open_time']);
-            $end_time = strtotime($working_hours['close_time']);
-            $appointment_time = strtotime($time);
-            
-            return $appointment_time >= $start_time && $appointment_time <= $end_time;
+            return true;
             
         } catch (Exception $e) {
             error_log("Error in isBarberAvailable: " . $e->getMessage());
