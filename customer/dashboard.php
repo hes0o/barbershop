@@ -460,16 +460,16 @@ function getStatusColor($status) {
                                         
                                         // Check if barber is available on this day
                                         $stmt = $db->getConnection()->prepare("
-                                            SELECT status 
+                                            SELECT start_time, end_time, status 
                                             FROM barber_schedule 
                                             WHERE barber_id = ? AND day_of_week = ?
                                         ");
                                         
                                         $stmt->bind_param("is", $barber['id'], $day_of_week);
                                         $stmt->execute();
-                                        $stmt->bind_result($status);
+                                        $stmt->bind_result($start_time, $end_time, $status);
                                         
-                                        if ($stmt->fetch() && $status === 'available') {
+                                        if ($stmt->fetch() && $status === 'available' && $start_time && $end_time) {
                                             // Check if there are any available time slots
                                             $time_slots = $scheduleSync->getAvailableTimeSlots($barber['id'], $date);
                                             if (!empty($time_slots)) {
@@ -480,9 +480,15 @@ function getStatusColor($status) {
                                     }
                                     
                                     // Display available dates
-                                    foreach ($available_dates as $date) {
-                                        echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                    if (empty($available_dates)) {
+                                        echo '<option value="" disabled>No available dates found</option>';
+                                    } else {
+                                        foreach ($available_dates as $date) {
+                                            echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                        }
                                     }
+                                } else {
+                                    echo '<option value="" disabled>No barber available</option>';
                                 }
                                 ?>
                             </select>
