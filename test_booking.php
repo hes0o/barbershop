@@ -376,20 +376,39 @@ class BookingTester {
             submitButton.innerHTML = '<span class=\"spinner-border spinner-border-sm\" role=\"status\" aria-hidden=\"true\"></span> Booking...';
             submitButton.disabled = true;
             
+            // Get form values
+            const date = document.getElementById('booking_date').value;
+            const time = document.getElementById('booking_time').value;
+            const service_id = parseInt(document.getElementById('service_id').value);
+            
+            // Validate form data
+            if (!date || !time || !service_id) {
+                alert('Please fill in all fields');
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+                return;
+            }
+            
+            // Create the request data
             const formData = {
-                date: document.getElementById('booking_date').value,
-                time: document.getElementById('booking_time').value,
-                service_id: document.getElementById('service_id').value
+                date: date,
+                time: time,
+                service_id: service_id
             };
             
             try {
                 const response = await fetch('test_book_appointment.php', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(formData)
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 
                 const data = await response.json();
                 
