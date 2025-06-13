@@ -322,30 +322,45 @@ class BookingTester {
         
         // Add JavaScript for dynamic time slot loading
         echo "<script>
-        document.querySelector('select[name=booking_date]').addEventListener('change', function() {
-            const date = this.value;
+        async function loadAvailableTimes(date) {
             const timeSelect = document.querySelector('select[name=booking_time]');
             timeSelect.innerHTML = '<option value=\"\">Loading times...</option>';
             
-            fetch('get_available_times.php?date=' + date)
-                .then(response => response.json())
-                .then(data => {
-                    timeSelect.innerHTML = '<option value=\"\">Select a time</option>';
-                    if (data.success && data.times.length > 0) {
-                        data.times.forEach(time => {
-                            const option = document.createElement('option');
-                            option.value = time;
-                            option.textContent = time;
-                            timeSelect.appendChild(option);
-                        });
-                    } else {
-                        timeSelect.innerHTML = '<option value=\"\">No available times</option>';
-                    }
-                })
-                .catch(error => {
-                    timeSelect.innerHTML = '<option value=\"\">Error loading times</option>';
-                });
+            try {
+                const response = await fetch('get_available_times.php?date=' + date);
+                const data = await response.json();
+                
+                timeSelect.innerHTML = '<option value=\"\">Select a time</option>';
+                
+                if (data.success && data.times && data.times.length > 0) {
+                    data.times.forEach(time => {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        option.textContent = time;
+                        timeSelect.appendChild(option);
+                    });
+                } else {
+                    timeSelect.innerHTML = '<option value=\"\">No available times</option>';
+                }
+            } catch (error) {
+                console.error('Error loading times:', error);
+                timeSelect.innerHTML = '<option value=\"\">Error loading times</option>';
+            }
+        }
+
+        // Load times when date is selected
+        document.querySelector('select[name=booking_date]').addEventListener('change', function() {
+            const date = this.value;
+            if (date) {
+                loadAvailableTimes(date);
+            }
         });
+
+        // Load times for initial date if one is selected
+        const initialDate = document.querySelector('select[name=booking_date]').value;
+        if (initialDate) {
+            loadAvailableTimes(initialDate);
+        }
         </script>";
         
         // Add CSS for the simulator
@@ -403,6 +418,21 @@ class BookingTester {
             margin: 5px 0;
             border-radius: 4px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .alert {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
         </style>";
     }
