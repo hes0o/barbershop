@@ -10,8 +10,17 @@ class ScheduleSync {
     
     public function validateBookingTime($barber_id, $date, $time, $service_id) {
         try {
-            // Get service duration (default to 60 minutes for all services)
-            $duration = 60;
+            // Get service duration
+            $stmt = $this->db->getConnection()->prepare("SELECT duration FROM services WHERE id = ?");
+            $stmt->bind_param("i", $service_id);
+            $stmt->execute();
+            $stmt->bind_result($duration);
+            
+            if (!$stmt->fetch()) {
+                return false;
+            }
+            
+            $stmt->close();
             
             // Convert booking time to timestamp
             $booking_time = strtotime($time);
@@ -115,7 +124,7 @@ class ScheduleSync {
             $start = strtotime($start_time);
             $end = strtotime($end_time);
             
-            // Generate time slots in one-hour intervals
+            // Generate time slots in 30-minute intervals
             $time_slots = [];
             $current = $start;
             
@@ -127,8 +136,8 @@ class ScheduleSync {
                     $time_slots[] = $time_slot;
                 }
                 
-                // Move to next hour
-                $current = strtotime('+1 hour', $current);
+                // Move to next 30 minutes
+                $current = strtotime('+30 minutes', $current);
             }
             
             return $time_slots;
