@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/schedule_sync.php';
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
@@ -69,61 +70,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_W
             throw new Exception('Cannot book appointments in the past');
         }
 
-        // Create appointment
+        // Initialize schedule sync
+        $scheduleSync = new ScheduleSync();
+
+        // Get database connection
         $db = new Database();
-        error_log("Database connection created");
-        
-        // Get barber first to avoid potential null reference
-        $barber = $db->getSingleBarber();
-        error_log("Barber data: " . print_r($barber, true));
-        
-        if (!$barber) {
-            throw new Exception('No barber available at this time');
+        $conn = $db->getConnection();
+
+        // Begin transaction
+        $conn->begin_transaction();
+
+        try {
+            // Insert appointment
+            $stmt = $conn->prepare("
+                INSERT INTO appointments (
+                    user_id, barber_id, service_id, 
+                    appointment_date, appointment_time, 
+                    status, created_at
+                ) VALUES (?, ?, ?, ?, ?, 'pending', NOW())
+            ");
+
+            $stmt->bind_param(
+                "iiiss",
+                $_SESSION['user_id'],
+                $barber['id'],
+                $service_id,
+                $data['date'],
+                $data['time']
+            );
+
+            if (!$stmt->execute()) {
+                throw new Exception('Failed to create appointment');
+            }
+
+            $appointment_id = $conn->insert_id;
+
+            // Commit transaction
+            $conn->commit();
+
+            // Return success response
+            echo json_encode([
+                'success' => true,
+                'message' => 'Appointment booked successfully',
+                'appointment_id' => $appointment_id
+            ]);
+
+        } catch (Exception $e) {
+            // Rollback transaction on error
+            $conn->rollback();
+            throw $e;
         }
-
-        // Validate service exists
-        $service = $db->getServiceById($service_id);
-        error_log("Service data: " . print_r($service, true));
-        
-        if (!$service) {
-            throw new Exception('Selected service is not available');
-        }
-
-        // Check if barber is available at this time
-        error_log("Checking barber availability for date: {$data['date']}, time: {$data['time']}");
-        $is_available = $db->isBarberAvailable($barber['id'], $data['date'], $data['time']);
-        error_log("Barber availability result: " . ($is_available ? 'true' : 'false'));
-        
-        if (!$is_available) {
-            throw new Exception('Selected time slot is not available');
-        }
-
-        // Create the appointment
-        error_log("Attempting to create appointment with data: " . print_r([
-            'user_id' => $_SESSION['user_id'],
-            'barber_id' => $barber['id'],
-            'service_id' => $service_id,
-            'date' => $data['date'],
-            'time' => $data['time']
-        ], true));
-        
-        $result = $db->createAppointment(
-            $_SESSION['user_id'],
-            $barber['id'],
-            $service_id,
-            $data['date'],
-            $data['time']
-        );
-
-        if (!$result) {
-            error_log("Failed to create appointment. Database error: " . $db->getConnection()->error);
-            throw new Exception('Unable to book appointment. Please try again.');
-        }
-
-        echo json_encode([
-            'success' => true,
-            'message' => 'Appointment booked successfully'
-        ]);
 
     } catch (Exception $e) {
         error_log("Booking error: " . $e->getMessage());
