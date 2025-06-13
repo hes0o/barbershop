@@ -240,8 +240,8 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                             <td>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Start Time</label>
-                                                    <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][start_time]" required data-day="<?php echo $dayLower; ?>">
-                                                        <option value="">Select time</option>
+                                                    <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][start_time]" data-day="<?php echo $dayLower; ?>">
+                                                        <option value="">Keep Current Time</option>
                                                         <?php
                                                         // Generate time slots for 24 hours in hourly intervals
                                                         for ($h = 0; $h < 24; $h++) {
@@ -256,8 +256,8 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                             <td>
                                                 <div class="col-md-4">
                                                     <label class="form-label">End Time</label>
-                                                    <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][end_time]" required data-day="<?php echo $dayLower; ?>">
-                                                        <option value="">Select time</option>
+                                                    <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][end_time]" data-day="<?php echo $dayLower; ?>">
+                                                        <option value="">Keep Current Time</option>
                                                         <?php
                                                         // Generate time slots for 24 hours in hourly intervals
                                                         for ($h = 0; $h < 24; $h++) {
@@ -271,8 +271,8 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                             </td>
                                             <td>
                                                 <select class="form-select" 
-                                                        name="schedule[<?php echo $dayLower; ?>][status]"
-                                                        required>
+                                                        name="schedule[<?php echo $dayLower; ?>][status]">
+                                                    <option value="">Keep Current Status</option>
                                                     <option value="available" <?php echo $daySchedule['status'] === 'available' ? 'selected' : ''; ?>>
                                                         Available
                                                     </option>
@@ -407,6 +407,7 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                     const startTime = select.value;
                     const endTime = timeSelects[index + 1].value;
                     
+                    // Only validate if both times are being changed
                     if (startTime && endTime && startTime >= endTime) {
                         select.classList.add('is-invalid');
                         timeSelects[index + 1].classList.add('is-invalid');
@@ -419,6 +420,17 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
             });
 
             return isValid;
+        }
+
+        // Function to check if any changes were made
+        function hasChanges() {
+            const formData = new FormData(weeklyScheduleForm);
+            for (let pair of formData.entries()) {
+                if (pair[1] !== '') { // If any field has a value (not empty)
+                    return true;
+                }
+            }
+            return false;
         }
 
         // Copy schedule functionality
@@ -451,8 +463,13 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
             weeklyScheduleForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
+                if (!hasChanges()) {
+                    alert('No changes were made to the schedule.');
+                    return;
+                }
+
                 if (!validateTimeSlots()) {
-                    alert('Please ensure end time is after start time for all days.');
+                    alert('Please ensure end time is after start time for all days being changed.');
                     return;
                 }
 
