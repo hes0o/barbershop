@@ -27,7 +27,7 @@ class BookingTester {
             throw new Exception("No barber found for testing");
         }
 
-        // Get a test service
+        // Get all services
         $services = $this->db->getAllServices();
         if (empty($services)) {
             throw new Exception("No services found for testing");
@@ -41,74 +41,9 @@ class BookingTester {
 
         $this->testData = [
             'barber' => $barber,
-            'service' => $services[0],
+            'services' => $services,
             'date' => $available_dates[0]
         ];
-    }
-
-    public function testBarberSchedule() {
-        echo "<h3>Testing Barber Schedule</h3>";
-        $day_of_week = strtolower(date('l', strtotime($this->testData['date'])));
-        
-        $stmt = $this->db->getConnection()->prepare("
-            SELECT start_time, end_time, status
-            FROM barber_schedule
-            WHERE barber_id = ? AND day_of_week = ?
-        ");
-        
-        $stmt->bind_param("is", $this->testData['barber']['id'], $day_of_week);
-        $stmt->execute();
-        $stmt->bind_result($start_time, $end_time, $status);
-        
-        if ($stmt->fetch()) {
-            echo "Barber schedule found:<br>";
-            echo "Start time: $start_time<br>";
-            echo "End time: $end_time<br>";
-            echo "Status: $status<br>";
-        } else {
-            echo "No schedule found for this day<br>";
-        }
-        $stmt->close();
-    }
-
-    public function testAvailableTimes() {
-        echo "<h3>Testing Available Times</h3>";
-        try {
-            $times = $this->scheduleSync->getAvailableTimeSlots(
-                $this->testData['barber']['id'],
-                $this->testData['date']
-            );
-            
-            echo "Available times for {$this->testData['date']}:<br>";
-            if (!empty($times)) {
-                foreach ($times as $time) {
-                    echo "- $time<br>";
-                }
-            } else {
-                echo "No available times found<br>";
-            }
-        } catch (Exception $e) {
-            echo "Error getting available times: " . $e->getMessage() . "<br>";
-        }
-    }
-
-    public function testBookingValidation() {
-        echo "<h3>Testing Booking Validation</h3>";
-        $test_time = "10:00"; // Example time
-        
-        try {
-            $isValid = $this->scheduleSync->validateBookingTime(
-                $this->testData['barber']['id'],
-                $this->testData['date'],
-                $test_time,
-                $this->testData['service']['id']
-            );
-            
-            echo "Booking validation for {$this->testData['date']} at $test_time: " . 
-                 ($isValid ? "Valid" : "Invalid") . "<br>";
-        } catch (Exception $e) {
-            echo "Error validating booking: " . $e->getMessage() . "<br>";
-        }
     }
 
     public function testDatabaseConnection() {
@@ -130,8 +65,162 @@ class BookingTester {
                 $row = $result->fetch_assoc();
                 echo "Total schedule entries: " . $row['count'] . "<br>";
             }
+
+            // Test services table
+            $result = $conn->query("SELECT COUNT(*) as count FROM services");
+            if ($result) {
+                $row = $result->fetch_assoc();
+                echo "Total services: " . $row['count'] . "<br>";
+            }
         } catch (Exception $e) {
             echo "Database connection error: " . $e->getMessage() . "<br>";
+        }
+    }
+
+    public function testBarberSchedule() {
+        echo "<h3>Testing Barber Schedule</h3>";
+        $day_of_week = strtolower(date('l', strtotime($this->testData['date'])));
+        
+        $stmt = $this->db->getConnection()->prepare("
+            SELECT start_time, end_time, status
+            FROM barber_schedule
+            WHERE barber_id = ? AND day_of_week = ?
+        ");
+        
+        $stmt->bind_param("is", $this->testData['barber']['id'], $day_of_week);
+        $stmt->execute();
+        $stmt->bind_result($start_time, $end_time, $status);
+        
+        if ($stmt->fetch()) {
+            echo "Barber schedule found:<br>";
+            echo "Start time: $start_time<br>";
+            echo "End time: $end_time<br>";
+            echo "Status: $status<br>";
+            
+            // Calculate total working hours
+            $start = strtotime($start_time);
+            $end = strtotime($end_time);
+            $hours = ($end - $start) / 3600;
+            echo "Total working hours: " . number_format($hours, 1) . " hours<br>";
+        } else {
+            echo "No schedule found for this day<br>";
+        }
+        $stmt->close();
+    }
+
+    public function testAvailableTimes() {
+        echo "<h3>Testing Available Times</h3>";
+        try {
+            $times = $this->scheduleSync->getAvailableTimeSlots(
+                $this->testData['barber']['id'],
+                $this->testData['date']
+            );
+            
+            echo "Available times for {$this->testData['date']}:<br>";
+            if (!empty($times)) {
+                echo "Total available slots: " . count($times) . "<br>";
+                foreach ($times as $time) {
+                    echo "- $time<br>";
+                }
+            } else {
+                echo "No available times found<br>";
+            }
+        } catch (Exception $e) {
+            echo "Error getting available times: " . $e->getMessage() . "<br>";
+        }
+    }
+
+    public function testServiceDurations() {
+        echo "<h3>Testing Service Durations</h3>";
+        echo "Available services and their durations:<br>";
+        foreach ($this->testData['services'] as $service) {
+            echo "- {$service['name']}: {$service['duration']} minutes<br>";
+        }
+    }
+
+    public function testBookingValidation() {
+        echo "<h3>Testing Booking Validation</h3>";
+        
+        // Test different times
+        $test_times = ["10:00", "10:30", "11:00", "11:30"];
+        $service = $this->testData['services'][0];
+        
+        echo "Testing bookings for service: {$service['name']} ({$service['duration']} minutes)<br>";
+        foreach ($test_times as $time) {
+            try {
+                $isValid = $this->scheduleSync->validateBookingTime(
+                    $this->testData['barber']['id'],
+                    $this->testData['date'],
+                    $time,
+                    $service['id']
+                );
+                
+                echo "Time slot $time: " . ($isValid ? "Available" : "Not Available") . "<br>";
+            } catch (Exception $e) {
+                echo "Error validating $time: " . $e->getMessage() . "<br>";
+            }
+        }
+    }
+
+    public function testOverlappingBookings() {
+        echo "<h3>Testing Overlapping Bookings</h3>";
+        
+        // Get the first available time
+        $times = $this->scheduleSync->getAvailableTimeSlots(
+            $this->testData['barber']['id'],
+            $this->testData['date']
+        );
+        
+        if (!empty($times)) {
+            $first_time = $times[0];
+            $service = $this->testData['services'][0];
+            
+            echo "Testing overlapping bookings for time: $first_time<br>";
+            echo "Service duration: {$service['duration']} minutes<br>";
+            
+            // Test booking at the same time
+            $isValid = $this->scheduleSync->validateBookingTime(
+                $this->testData['barber']['id'],
+                $this->testData['date'],
+                $first_time,
+                $service['id']
+            );
+            
+            echo "First booking at $first_time: " . ($isValid ? "Available" : "Not Available") . "<br>";
+            
+            // Test booking 15 minutes after
+            $next_time = date('H:i', strtotime($first_time . ' +15 minutes'));
+            $isValid = $this->scheduleSync->validateBookingTime(
+                $this->testData['barber']['id'],
+                $this->testData['date'],
+                $next_time,
+                $service['id']
+            );
+            
+            echo "Second booking at $next_time: " . ($isValid ? "Available" : "Not Available") . "<br>";
+        } else {
+            echo "No available times to test overlapping bookings<br>";
+        }
+    }
+
+    public function testPastTimes() {
+        echo "<h3>Testing Past Times</h3>";
+        
+        // Test booking for a past time today
+        $past_time = date('H:i', strtotime('-2 hours'));
+        $service = $this->testData['services'][0];
+        
+        try {
+            $isValid = $this->scheduleSync->validateBookingTime(
+                $this->testData['barber']['id'],
+                date('Y-m-d'),
+                $past_time,
+                $service['id']
+            );
+            
+            echo "Past time booking ($past_time): " . ($isValid ? "Available" : "Not Available") . "<br>";
+        } catch (Exception $e) {
+            echo "Error testing past time: " . $e->getMessage() . "<br>";
         }
     }
 
@@ -145,10 +234,19 @@ class BookingTester {
         $this->testBarberSchedule();
         echo "\n";
         
+        $this->testServiceDurations();
+        echo "\n";
+        
         $this->testAvailableTimes();
         echo "\n";
         
         $this->testBookingValidation();
+        echo "\n";
+        
+        $this->testOverlappingBookings();
+        echo "\n";
+        
+        $this->testPastTimes();
         
         echo "</pre>";
     }
