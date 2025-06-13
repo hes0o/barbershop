@@ -60,7 +60,10 @@ function getAppointmentsForDate($date) {
     }
     
     $stmt = $db->getConnection()->prepare("
-        SELECT a.*, s.name as service_name, s.price, u.username as customer_name
+        SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, 
+               a.appointment_time, a.status, a.notes, a.created_at,
+               s.name as service_name, s.price,
+               u.username as customer_name
         FROM appointments a
         JOIN services s ON a.service_id = s.id
         JOIN users u ON a.user_id = u.id
@@ -70,13 +73,33 @@ function getAppointmentsForDate($date) {
     
     $stmt->bind_param("is", $barber['id'], $date);
     $stmt->execute();
-    $result = $stmt->get_result();
+    
+    // Bind result variables
+    $stmt->bind_result(
+        $id, $user_id, $barber_id, $service_id, $appointment_date,
+        $appointment_time, $status, $notes, $created_at,
+        $service_name, $price, $customer_name
+    );
     
     $appointments = [];
-    while ($row = $result->fetch_assoc()) {
-        $appointments[] = $row;
+    while ($stmt->fetch()) {
+        $appointments[] = [
+            'id' => $id,
+            'user_id' => $user_id,
+            'barber_id' => $barber_id,
+            'service_id' => $service_id,
+            'appointment_date' => $appointment_date,
+            'appointment_time' => $appointment_time,
+            'status' => $status,
+            'notes' => $notes,
+            'created_at' => $created_at,
+            'service_name' => $service_name,
+            'price' => $price,
+            'customer_name' => $customer_name
+        ];
     }
     
+    $stmt->close();
     return $appointments;
 }
 
