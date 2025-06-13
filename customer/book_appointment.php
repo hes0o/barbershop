@@ -70,17 +70,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_W
             throw new Exception('Cannot book appointments in the past');
         }
 
+        // Initialize database and get barber
+        $db = new Database();
+        $barber = $db->getSingleBarber();
+        if (!$barber) {
+            throw new Exception('No barber available at this time');
+        }
+
         // Initialize schedule sync
         $scheduleSync = new ScheduleSync();
 
         // Get database connection
-        $db = new Database();
         $conn = $db->getConnection();
 
         // Begin transaction
         $conn->begin_transaction();
 
         try {
+            // Check if the time slot is still available
+            if (!$scheduleSync->validateBookingTime($barber['id'], $data['date'], $data['time'], $service_id)) {
+                throw new Exception('Selected time slot is no longer available');
+            }
+
             // Insert appointment
             $stmt = $conn->prepare("
                 INSERT INTO appointments (
@@ -89,6 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_W
                     status, created_at
                 ) VALUES (?, ?, ?, ?, ?, 'pending', NOW())
             ");
+
+            if (!$stmt) {
+                throw new Exception('Failed to prepare appointment statement: ' . $conn->error);
+            }
 
             $stmt->bind_param(
                 "iiiss",
@@ -100,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SERVER['HTTP_X_REQUESTED_W
             );
 
             if (!$stmt->execute()) {
-                throw new Exception('Failed to create appointment');
+                throw new Exception('Failed to create appointment: ' . $stmt->error);
             }
 
             $appointment_id = $conn->insert_id;
