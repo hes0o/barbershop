@@ -403,15 +403,38 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                     const data = await response.json();
 
                     if (data.success) {
-                        // Show success message
-                        alert('Schedule updated successfully!');
-                        window.location.reload();
+                        // Create success alert
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                        alertDiv.innerHTML = `
+                            <i class="fas fa-check-circle"></i> Schedule updated successfully!
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        
+                        // Insert at the top of the container
+                        const container = document.querySelector('.container-fluid');
+                        container.insertBefore(alertDiv, container.firstChild);
+                        
+                        // Reload after 2 seconds
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
                     } else {
                         throw new Error(data.message || 'Failed to update schedule');
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert(error.message);
+                    // Create error alert
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-exclamation-circle"></i> ${error.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    
+                    // Insert at the top of the container
+                    const container = document.querySelector('.container-fluid');
+                    container.insertBefore(alertDiv, container.firstChild);
                 } finally {
                     // Reset button state
                     submitButton.disabled = false;
