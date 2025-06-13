@@ -243,11 +243,13 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                                     <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][start_time]" data-day="<?php echo $dayLower; ?>">
                                                         <option value="">Keep Current Time</option>
                                                         <?php
-                                                        // Generate time slots for 24 hours in hourly intervals
+                                                        // Generate time slots in 30-minute intervals
                                                         for ($h = 0; $h < 24; $h++) {
-                                                            $time = sprintf('%02d:00', $h);
-                                                            $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
-                                                            echo "<option value=\"$time\" $selected>$time</option>";
+                                                            for ($m = 0; $m < 60; $m += 30) {
+                                                                $time = sprintf('%02d:%02d', $h, $m);
+                                                                $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
+                                                                echo "<option value=\"$time\" $selected>$time</option>";
+                                                            }
                                                         }
                                                         ?>
                                                     </select>
@@ -259,11 +261,13 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                                     <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][end_time]" data-day="<?php echo $dayLower; ?>">
                                                         <option value="">Keep Current Time</option>
                                                         <?php
-                                                        // Generate time slots for 24 hours in hourly intervals
+                                                        // Generate time slots in 30-minute intervals
                                                         for ($h = 0; $h < 24; $h++) {
-                                                            $time = sprintf('%02d:00', $h);
-                                                            $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
-                                                            echo "<option value=\"$time\" $selected>$time</option>";
+                                                            for ($m = 0; $m < 60; $m += 30) {
+                                                                $time = sprintf('%02d:%02d', $h, $m);
+                                                                $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
+                                                                echo "<option value=\"$time\" $selected>$time</option>";
+                                                            }
                                                         }
                                                         ?>
                                                     </select>
@@ -397,27 +401,46 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
         const weeklyScheduleForm = document.getElementById('weeklyScheduleForm');
         const copyScheduleBtn = document.getElementById('copyScheduleBtn');
 
+        // Function to convert time to minutes for comparison
+        function timeToMinutes(time) {
+            if (!time) return 0;
+            const [hours, minutes] = time.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
         // Function to validate time slots
         function validateTimeSlots() {
             const timeSelects = document.querySelectorAll('.schedule-time');
             let isValid = true;
+            let errorMessages = [];
 
             timeSelects.forEach((select, index) => {
                 if (index % 2 === 0) { // Start time
                     const startTime = select.value;
                     const endTime = timeSelects[index + 1].value;
+                    const day = select.dataset.day;
                     
                     // Only validate if both times are being changed
-                    if (startTime && endTime && startTime >= endTime) {
-                        select.classList.add('is-invalid');
-                        timeSelects[index + 1].classList.add('is-invalid');
-                        isValid = false;
-                    } else {
-                        select.classList.remove('is-invalid');
-                        timeSelects[index + 1].classList.remove('is-invalid');
+                    if (startTime && endTime) {
+                        const startMinutes = timeToMinutes(startTime);
+                        const endMinutes = timeToMinutes(endTime);
+                        
+                        if (startMinutes >= endMinutes) {
+                            select.classList.add('is-invalid');
+                            timeSelects[index + 1].classList.add('is-invalid');
+                            isValid = false;
+                            errorMessages.push(`${day}: End time must be after start time`);
+                        } else {
+                            select.classList.remove('is-invalid');
+                            timeSelects[index + 1].classList.remove('is-invalid');
+                        }
                     }
                 }
             });
+
+            if (!isValid) {
+                alert(errorMessages.join('\n'));
+            }
 
             return isValid;
         }
@@ -469,8 +492,7 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                 }
 
                 if (!validateTimeSlots()) {
-                    alert('Please ensure end time is after start time for all days being changed.');
-                    return;
+                    return; // Error message already shown by validateTimeSlots
                 }
 
                 // Get submit button and store original text
