@@ -281,38 +281,38 @@ class BookingTester {
         // Get available dates
         $available_dates = $this->db->getAvailableDates($this->testData['barber']['id']);
         
-        echo "<form method='post' action='' class='booking-form'>";
+        echo "<form method='post' action='' class='booking-form' id='bookingForm'>";
         echo "<input type='hidden' name='action' value='simulate_booking'>";
         
         // Date Selection
         echo "<div class='form-group'>";
         echo "<label>Select Date:</label>";
-        echo "<select name='booking_date' required>";
+        echo "<select name='booking_date' id='booking_date' required>";
         foreach ($available_dates as $date) {
             echo "<option value='$date'>" . date('D, M j, Y', strtotime($date)) . "</option>";
         }
         echo "</select>";
         echo "</div>";
         
-        // Time Selection (Moved before service selection)
+        // Time Selection
         echo "<div class='form-group'>";
         echo "<label>Select Time:</label>";
-        echo "<select name='booking_time' required>";
+        echo "<select name='booking_time' id='booking_time' required>";
         echo "<option value=''>Select a date first</option>";
         echo "</select>";
         echo "</div>";
         
-        // Service Selection (Moved after time selection)
+        // Service Selection
         echo "<div class='form-group'>";
         echo "<label>Select Service:</label>";
-        echo "<select name='service_id' required>";
+        echo "<select name='service_id' id='service_id' required>";
         foreach ($this->testData['services'] as $service) {
             echo "<option value='{$service['id']}'>{$service['name']} ({$service['duration']} min)</option>";
         }
         echo "</select>";
         echo "</div>";
         
-        echo "<button type='submit' class='btn btn-primary'>Simulate Booking</button>";
+        echo "<button type='submit' class='btn btn-primary' id='submitBooking'>Simulate Booking</button>";
         echo "</form>";
         
         // Display current bookings
@@ -320,11 +320,11 @@ class BookingTester {
         
         echo "</div>";
         
-        // Add JavaScript for dynamic time slot loading
+        // Add JavaScript for dynamic time slot loading and form submission
         echo "<script>
         async function loadAvailableTimes(date) {
-            const timeSelect = document.querySelector('select[name=booking_time]');
-            const serviceSelect = document.querySelector('select[name=service_id]');
+            const timeSelect = document.getElementById('booking_time');
+            const serviceSelect = document.getElementById('service_id');
             timeSelect.innerHTML = '<option value=\"\">Loading times...</option>';
             serviceSelect.disabled = true;
             
@@ -354,7 +354,7 @@ class BookingTester {
         }
 
         // Load times when date is selected
-        document.querySelector('select[name=booking_date]').addEventListener('change', function() {
+        document.getElementById('booking_date').addEventListener('change', function() {
             const date = this.value;
             if (date) {
                 loadAvailableTimes(date);
@@ -362,13 +362,55 @@ class BookingTester {
         });
 
         // Enable/disable service selection based on time selection
-        document.querySelector('select[name=booking_time]').addEventListener('change', function() {
-            const serviceSelect = document.querySelector('select[name=service_id]');
+        document.getElementById('booking_time').addEventListener('change', function() {
+            const serviceSelect = document.getElementById('service_id');
             serviceSelect.disabled = !this.value;
         });
 
+        // Handle form submission
+        document.getElementById('bookingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitButton = document.getElementById('submitBooking');
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = '<span class=\"spinner-border spinner-border-sm\" role=\"status\" aria-hidden=\"true\"></span> Booking...';
+            submitButton.disabled = true;
+            
+            const formData = {
+                date: document.getElementById('booking_date').value,
+                time: document.getElementById('booking_time').value,
+                service_id: document.getElementById('service_id').value
+            };
+            
+            try {
+                const response = await fetch('book_appointment.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Booking created successfully!');
+                    location.reload(); // Refresh to show new booking
+                } else {
+                    throw new Error(data.error || 'Failed to create booking');
+                }
+            } catch (error) {
+                console.error('Booking error:', error);
+                alert('Error: ' + error.message);
+            } finally {
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            }
+        });
+
         // Load times for initial date if one is selected
-        const initialDate = document.querySelector('select[name=booking_date]').value;
+        const initialDate = document.getElementById('booking_date').value;
         if (initialDate) {
             loadAvailableTimes(initialDate);
         }
@@ -421,6 +463,10 @@ class BookingTester {
         }
         .btn-primary:hover {
             background: #0056b3;
+        }
+        .btn-primary:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
         }
         .current-bookings {
             margin-top: 20px;
