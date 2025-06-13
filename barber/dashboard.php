@@ -209,6 +209,11 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                 <div class="schedule-card">
                     <h4 class="mb-4">Weekly Schedule</h4>
                     <form id="weeklyScheduleForm" method="POST">
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-secondary" id="copyScheduleBtn">
+                                <i class="fas fa-copy"></i> Copy Schedule to All Days
+                            </button>
+                        </div>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -235,7 +240,7 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                             <td>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Start Time</label>
-                                                    <select class="form-select" name="schedule[<?php echo $dayLower; ?>][start_time]" required>
+                                                    <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][start_time]" required data-day="<?php echo $dayLower; ?>">
                                                         <option value="">Select time</option>
                                                         <?php
                                                         // Generate time slots for 24 hours in hourly intervals
@@ -251,7 +256,7 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                             <td>
                                                 <div class="col-md-4">
                                                     <label class="form-label">End Time</label>
-                                                    <select class="form-select" name="schedule[<?php echo $dayLower; ?>][end_time]" required>
+                                                    <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][end_time]" required data-day="<?php echo $dayLower; ?>">
                                                         <option value="">Select time</option>
                                                         <?php
                                                         // Generate time slots for 24 hours in hourly intervals
@@ -390,10 +395,67 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
     document.addEventListener('DOMContentLoaded', function() {
         // Handle weekly schedule form submission
         const weeklyScheduleForm = document.getElementById('weeklyScheduleForm');
+        const copyScheduleBtn = document.getElementById('copyScheduleBtn');
+
+        // Function to validate time slots
+        function validateTimeSlots() {
+            const timeSelects = document.querySelectorAll('.schedule-time');
+            let isValid = true;
+
+            timeSelects.forEach((select, index) => {
+                if (index % 2 === 0) { // Start time
+                    const startTime = select.value;
+                    const endTime = timeSelects[index + 1].value;
+                    
+                    if (startTime && endTime && startTime >= endTime) {
+                        select.classList.add('is-invalid');
+                        timeSelects[index + 1].classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        select.classList.remove('is-invalid');
+                        timeSelects[index + 1].classList.remove('is-invalid');
+                    }
+                }
+            });
+
+            return isValid;
+        }
+
+        // Copy schedule functionality
+        if (copyScheduleBtn) {
+            copyScheduleBtn.addEventListener('click', function() {
+                const firstDayStart = document.querySelector('select[name="schedule[monday][start_time]"]').value;
+                const firstDayEnd = document.querySelector('select[name="schedule[monday][end_time]"]').value;
+                const firstDayStatus = document.querySelector('select[name="schedule[monday][status]"]').value;
+
+                if (!firstDayStart || !firstDayEnd) {
+                    alert('Please set Monday schedule first before copying to other days.');
+                    return;
+                }
+
+                const days = ['tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                days.forEach(day => {
+                    document.querySelector(`select[name="schedule[${day}][start_time]"]`).value = firstDayStart;
+                    document.querySelector(`select[name="schedule[${day}][end_time]"]`).value = firstDayEnd;
+                    document.querySelector(`select[name="schedule[${day}][status]"]`).value = firstDayStatus;
+                });
+            });
+        }
+
+        // Add validation on time select change
+        document.querySelectorAll('.schedule-time').forEach(select => {
+            select.addEventListener('change', validateTimeSlots);
+        });
+
         if (weeklyScheduleForm) {
             weeklyScheduleForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
+                if (!validateTimeSlots()) {
+                    alert('Please ensure end time is after start time for all days.');
+                    return;
+                }
+
                 // Get submit button and store original text
                 const submitButton = this.querySelector('button[type="submit"]');
                 const originalButtonText = submitButton.innerHTML;
@@ -406,39 +468,17 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                     // Get form data
                     const formData = new FormData(this);
                     
-                    // Log form data for debugging
-                    console.log('Form data being sent:');
-                    for (let pair of formData.entries()) {
-                        console.log(pair[0] + ': ' + pair[1]);
-                    }
-
-                    // Convert FormData to object for logging
-                    const formDataObj = {};
-                    formData.forEach((value, key) => {
-                        formDataObj[key] = value;
-                    });
-                    console.log('Form data as object:', formDataObj);
-
                     // Send request
                     const response = await fetch('update_schedule.php', {
                         method: 'POST',
                         body: formData
                     });
-
-                    // Log response details
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
                     
                     const responseText = await response.text();
-                    console.log('Raw response text:', responseText);
-
-                    // Try to parse JSON
                     let data;
                     try {
                         data = JSON.parse(responseText);
-                        console.log('Parsed response data:', data);
                     } catch (e) {
-                        console.error('Failed to parse JSON:', e);
                         throw new Error('Invalid server response: ' + responseText);
                     }
 
