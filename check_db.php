@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'includes/db.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/db.php';
 
 // Enable error reporting
 error_reporting(E_ALL);
@@ -106,6 +106,31 @@ try {
         $count = $result->fetch_assoc()['count'];
         echo "<p>Total records in $table: $count</p>";
     }
+
+    // Check active barbers
+    $result = $conn->query("SELECT COUNT(*) as barber_count FROM barbers WHERE status = 'active'");
+    $barber_count = $result->fetch_assoc()['barber_count'];
+
+    // Check barber schedules
+    $result = $conn->query("SELECT COUNT(*) as schedule_count FROM barber_schedule");
+    $schedule_count = $result->fetch_assoc()['schedule_count'];
+
+    // Get active barbers details
+    $result = $conn->query("
+        SELECT b.id, b.status, u.username 
+        FROM barbers b 
+        JOIN users u ON b.user_id = u.id 
+        WHERE b.status = 'active'
+    ");
+    $barbers = [];
+    while ($row = $result->fetch_assoc()) {
+        $barbers[] = $row;
+    }
+
+    echo "Active Barbers: " . $barber_count . "\n";
+    echo "Schedule Entries: " . $schedule_count . "\n";
+    echo "\nActive Barber Details:\n";
+    print_r($barbers);
 
 } catch (Exception $e) {
     echo "<h2>Error</h2>";

@@ -26,7 +26,11 @@ try {
     $barber = $db->getSingleBarber();
     
     if (!$barber) {
-        echo json_encode(['success' => false, 'error' => 'No barber available']);
+        error_log("No active barber found in get_available_times.php");
+        echo json_encode([
+            'success' => false, 
+            'error' => 'No active barber available. Please contact the administrator.'
+        ]);
         exit;
     }
     
@@ -35,6 +39,16 @@ try {
     
     // Sort time slots
     sort($time_slots);
+    
+    if (empty($time_slots)) {
+        error_log("No available time slots found for barber {$barber['id']} on date {$date}");
+        echo json_encode([
+            'success' => true,
+            'times' => [],
+            'message' => 'No available time slots for this date'
+        ]);
+        exit;
+    }
     
     echo json_encode([
         'success' => true,
