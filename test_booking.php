@@ -383,11 +383,10 @@ class BookingTester {
             };
             
             try {
-                const response = await fetch('book_appointment.php', {
+                const response = await fetch('test_book_appointment.php', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(formData)
                 });
