@@ -79,6 +79,7 @@ class ScheduleSync {
                 AND (
                     (a.appointment_time <= ? AND DATE_ADD(a.appointment_time, INTERVAL s.duration MINUTE) > ?)
                     OR (a.appointment_time < DATE_ADD(?, INTERVAL ? MINUTE) AND a.appointment_time >= ?)
+                    OR (a.appointment_time >= ? AND a.appointment_time < DATE_ADD(?, INTERVAL ? MINUTE))
                 )
             ");
             
@@ -86,7 +87,18 @@ class ScheduleSync {
                 throw new Exception("Error preparing overlap check query: " . $this->db->getConnection()->error);
             }
             
-            $stmt->bind_param("issssis", $barber_id, $date, $time, $time, $time, $duration, $time);
+            $stmt->bind_param("issssisssi", 
+                $barber_id, 
+                $date, 
+                $time, 
+                $time, 
+                $time, 
+                $duration, 
+                $time,
+                $time,
+                $time,
+                $duration
+            );
             $stmt->execute();
             $stmt->bind_result($existing_time, $existing_duration);
             
