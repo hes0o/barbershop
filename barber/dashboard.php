@@ -209,11 +209,6 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                 <div class="schedule-card">
                     <h4 class="mb-4">Weekly Schedule</h4>
                     <form id="weeklyScheduleForm" method="POST">
-                        <div class="mb-3">
-                            <button type="button" class="btn btn-secondary" id="copyScheduleBtn">
-                                <i class="fas fa-copy"></i> Copy Schedule to All Days
-                            </button>
-                        </div>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -238,51 +233,35 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                                         <tr>
                                             <td><?php echo $day; ?></td>
                                             <td>
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Start Time</label>
-                                                    <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][start_time]" data-day="<?php echo $dayLower; ?>">
-                                                        <option value="">Keep Current Time</option>
-                                                        <?php
-                                                        // Generate time slots in 30-minute intervals
-                                                        for ($h = 0; $h < 24; $h++) {
-                                                            for ($m = 0; $m < 60; $m += 30) {
-                                                                $time = sprintf('%02d:%02d', $h, $m);
-                                                                $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
-                                                                echo "<option value=\"$time\" $selected>$time</option>";
-                                                            }
+                                                <select class="form-select" name="schedule[<?php echo $dayLower; ?>][start_time]">
+                                                    <?php
+                                                    for ($h = 8; $h <= 20; $h++) {
+                                                        for ($m = 0; $m < 60; $m += 30) {
+                                                            $time = sprintf('%02d:%02d', $h, $m);
+                                                            $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
+                                                            echo "<option value=\"$time\" $selected>$time</option>";
                                                         }
-                                                        ?>
-                                                    </select>
-                                                </div>
+                                                    }
+                                                    ?>
+                                                </select>
                                             </td>
                                             <td>
-                                                <div class="col-md-4">
-                                                    <label class="form-label">End Time</label>
-                                                    <select class="form-select schedule-time" name="schedule[<?php echo $dayLower; ?>][end_time]" data-day="<?php echo $dayLower; ?>">
-                                                        <option value="">Keep Current Time</option>
-                                                        <?php
-                                                        // Generate time slots in 30-minute intervals
-                                                        for ($h = 0; $h < 24; $h++) {
-                                                            for ($m = 0; $m < 60; $m += 30) {
-                                                                $time = sprintf('%02d:%02d', $h, $m);
-                                                                $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
-                                                                echo "<option value=\"$time\" $selected>$time</option>";
-                                                            }
+                                                <select class="form-select" name="schedule[<?php echo $dayLower; ?>][end_time]">
+                                                    <?php
+                                                    for ($h = 8; $h <= 20; $h++) {
+                                                        for ($m = 0; $m < 60; $m += 30) {
+                                                            $time = sprintf('%02d:%02d', $h, $m);
+                                                            $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
+                                                            echo "<option value=\"$time\" $selected>$time</option>";
                                                         }
-                                                        ?>
-                                                    </select>
-                                                </div>
+                                                    }
+                                                    ?>
+                                                </select>
                                             </td>
                                             <td>
-                                                <select class="form-select" 
-                                                        name="schedule[<?php echo $dayLower; ?>][status]">
-                                                    <option value="">Keep Current Status</option>
-                                                    <option value="available" <?php echo $daySchedule['status'] === 'available' ? 'selected' : ''; ?>>
-                                                        Available
-                                                    </option>
-                                                    <option value="unavailable" <?php echo $daySchedule['status'] === 'unavailable' ? 'selected' : ''; ?>>
-                                                        Unavailable
-                                                    </option>
+                                                <select class="form-select" name="schedule[<?php echo $dayLower; ?>][status]">
+                                                    <option value="available" <?php echo $daySchedule['status'] === 'available' ? 'selected' : ''; ?>>Available</option>
+                                                    <option value="unavailable" <?php echo $daySchedule['status'] === 'unavailable' ? 'selected' : ''; ?>>Unavailable</option>
                                                 </select>
                                             </td>
                                         </tr>
@@ -397,104 +376,12 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Handle weekly schedule form submission
         const weeklyScheduleForm = document.getElementById('weeklyScheduleForm');
-        const copyScheduleBtn = document.getElementById('copyScheduleBtn');
-
-        // Function to convert time to minutes for comparison
-        function timeToMinutes(time) {
-            if (!time) return 0;
-            const [hours, minutes] = time.split(':').map(Number);
-            return hours * 60 + minutes;
-        }
-
-        // Function to validate time slots
-        function validateTimeSlots() {
-            const timeSelects = document.querySelectorAll('.schedule-time');
-            let isValid = true;
-            let errorMessages = [];
-
-            timeSelects.forEach((select, index) => {
-                if (index % 2 === 0) { // Start time
-                    const startTime = select.value;
-                    const endTime = timeSelects[index + 1].value;
-                    const day = select.dataset.day;
-                    
-                    // Only validate if both times are being changed
-                    if (startTime && endTime) {
-                        const startMinutes = timeToMinutes(startTime);
-                        const endMinutes = timeToMinutes(endTime);
-                        
-                        if (startMinutes >= endMinutes) {
-                            select.classList.add('is-invalid');
-                            timeSelects[index + 1].classList.add('is-invalid');
-                            isValid = false;
-                            errorMessages.push(`${day}: End time must be after start time`);
-                        } else {
-                            select.classList.remove('is-invalid');
-                            timeSelects[index + 1].classList.remove('is-invalid');
-                        }
-                    }
-                }
-            });
-
-            if (!isValid) {
-                alert(errorMessages.join('\n'));
-            }
-
-            return isValid;
-        }
-
-        // Function to check if any changes were made
-        function hasChanges() {
-            const formData = new FormData(weeklyScheduleForm);
-            for (let pair of formData.entries()) {
-                if (pair[1] !== '') { // If any field has a value (not empty)
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Copy schedule functionality
-        if (copyScheduleBtn) {
-            copyScheduleBtn.addEventListener('click', function() {
-                const firstDayStart = document.querySelector('select[name="schedule[monday][start_time]"]').value;
-                const firstDayEnd = document.querySelector('select[name="schedule[monday][end_time]"]').value;
-                const firstDayStatus = document.querySelector('select[name="schedule[monday][status]"]').value;
-
-                if (!firstDayStart || !firstDayEnd) {
-                    alert('Please set Monday schedule first before copying to other days.');
-                    return;
-                }
-
-                const days = ['tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-                days.forEach(day => {
-                    document.querySelector(`select[name="schedule[${day}][start_time]"]`).value = firstDayStart;
-                    document.querySelector(`select[name="schedule[${day}][end_time]"]`).value = firstDayEnd;
-                    document.querySelector(`select[name="schedule[${day}][status]"]`).value = firstDayStatus;
-                });
-            });
-        }
-
-        // Add validation on time select change
-        document.querySelectorAll('.schedule-time').forEach(select => {
-            select.addEventListener('change', validateTimeSlots);
-        });
 
         if (weeklyScheduleForm) {
             weeklyScheduleForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
-                if (!hasChanges()) {
-                    alert('No changes were made to the schedule.');
-                    return;
-                }
-
-                if (!validateTimeSlots()) {
-                    return; // Error message already shown by validateTimeSlots
-                }
-
                 // Get submit button and store original text
                 const submitButton = this.querySelector('button[type="submit"]');
                 const originalButtonText = submitButton.innerHTML;
@@ -513,41 +400,18 @@ $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
                         body: formData
                     });
                     
-                    const responseText = await response.text();
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                    } catch (e) {
-                        throw new Error('Invalid server response: ' + responseText);
-                    }
+                    const data = await response.json();
 
                     if (data.success) {
                         // Show success message
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                        alertDiv.innerHTML = `
-                            ${data.message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        `;
-                        document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.dashboard-stats'));
-                        
-                        // Reload the page after 2 seconds
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 2000);
+                        alert('Schedule updated successfully!');
+                        window.location.reload();
                     } else {
                         throw new Error(data.message || 'Failed to update schedule');
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    // Show error message
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-                    alertDiv.innerHTML = `
-                        ${error.message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
-                    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.dashboard-stats'));
+                    alert(error.message);
                 } finally {
                     // Reset button state
                     submitButton.disabled = false;
