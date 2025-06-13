@@ -123,7 +123,7 @@ while ($stmt->fetch()) {
         'id' => $service_id,
         'name' => $service_name,
         'price' => $service_price,
-        'duration' => $service_duration,
+        'duration' => 60, // Set all services to 60 minutes
         'description' => $service_description
     ];
 }
@@ -269,6 +269,8 @@ function getStatusColor($status) {
             margin: 0.25rem;
             transition: all 0.3s;
             background: var(--white);
+            width: calc(25% - 0.5rem); /* Show 4 time slots per row */
+            text-align: center;
         }
         .time-slot:hover {
             background-color: var(--gray-100);
@@ -532,6 +534,9 @@ function getStatusColor($status) {
             timeSelect.innerHTML = '<option value="">Select a time</option>';
             
             if (data.success && data.times && data.times.length > 0) {
+                // Sort times in ascending order
+                data.times.sort();
+                
                 data.times.forEach(time => {
                     const option = document.createElement('option');
                     option.value = time;
