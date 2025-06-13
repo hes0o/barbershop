@@ -294,21 +294,21 @@ class BookingTester {
         echo "</select>";
         echo "</div>";
         
-        // Service Selection
+        // Time Selection (Moved before service selection)
+        echo "<div class='form-group'>";
+        echo "<label>Select Time:</label>";
+        echo "<select name='booking_time' required>";
+        echo "<option value=''>Select a date first</option>";
+        echo "</select>";
+        echo "</div>";
+        
+        // Service Selection (Moved after time selection)
         echo "<div class='form-group'>";
         echo "<label>Select Service:</label>";
         echo "<select name='service_id' required>";
         foreach ($this->testData['services'] as $service) {
             echo "<option value='{$service['id']}'>{$service['name']} ({$service['duration']} min)</option>";
         }
-        echo "</select>";
-        echo "</div>";
-        
-        // Time Selection
-        echo "<div class='form-group'>";
-        echo "<label>Select Time:</label>";
-        echo "<select name='booking_time' required>";
-        echo "<option value=''>Select a date first</option>";
         echo "</select>";
         echo "</div>";
         
@@ -324,7 +324,9 @@ class BookingTester {
         echo "<script>
         async function loadAvailableTimes(date) {
             const timeSelect = document.querySelector('select[name=booking_time]');
+            const serviceSelect = document.querySelector('select[name=service_id]');
             timeSelect.innerHTML = '<option value=\"\">Loading times...</option>';
+            serviceSelect.disabled = true;
             
             try {
                 const response = await fetch('get_available_times.php?date=' + date);
@@ -339,12 +341,15 @@ class BookingTester {
                         option.textContent = time;
                         timeSelect.appendChild(option);
                     });
+                    timeSelect.disabled = false;
                 } else {
                     timeSelect.innerHTML = '<option value=\"\">No available times</option>';
+                    timeSelect.disabled = true;
                 }
             } catch (error) {
                 console.error('Error loading times:', error);
                 timeSelect.innerHTML = '<option value=\"\">Error loading times</option>';
+                timeSelect.disabled = true;
             }
         }
 
@@ -354,6 +359,12 @@ class BookingTester {
             if (date) {
                 loadAvailableTimes(date);
             }
+        });
+
+        // Enable/disable service selection based on time selection
+        document.querySelector('select[name=booking_time]').addEventListener('change', function() {
+            const serviceSelect = document.querySelector('select[name=service_id]');
+            serviceSelect.disabled = !this.value;
         });
 
         // Load times for initial date if one is selected
@@ -392,6 +403,10 @@ class BookingTester {
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 14px;
+        }
+        .form-group select:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
         }
         .btn {
             padding: 10px 20px;
