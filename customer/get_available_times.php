@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/schedule_sync.php';
 
 // Set content type to JSON
 header('Content-Type: application/json');
@@ -84,7 +85,7 @@ try {
     $booked_slots = [];
     while ($stmt->fetch()) {
         $start = strtotime($appointment_time);
-        $end = $start + 3600; // 1 hour in seconds
+        $end = $start + ($duration * 60); // Convert duration to seconds
         $booked_slots[] = [
             'start' => $start,
             'end' => $end
@@ -96,7 +97,7 @@ try {
     // Generate available time slots
     $start_timestamp = strtotime($start_time);
     $end_timestamp = strtotime($end_time);
-    $interval = 3600; // 1 hour in seconds
+    $interval = 30 * 60; // 30 minutes in seconds
     $available_times = [];
 
     // Filter out past times for today
