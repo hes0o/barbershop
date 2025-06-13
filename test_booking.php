@@ -274,6 +274,226 @@ class BookingTester {
         }
     }
 
+    public function renderBookingSimulator() {
+        echo "<h2>Booking Simulator</h2>";
+        echo "<div class='booking-simulator'>";
+        
+        // Get available dates
+        $available_dates = $this->db->getAvailableDates($this->testData['barber']['id']);
+        
+        echo "<form method='post' action='' class='booking-form'>";
+        echo "<input type='hidden' name='action' value='simulate_booking'>";
+        
+        // Date Selection
+        echo "<div class='form-group'>";
+        echo "<label>Select Date:</label>";
+        echo "<select name='booking_date' required>";
+        foreach ($available_dates as $date) {
+            echo "<option value='$date'>" . date('D, M j, Y', strtotime($date)) . "</option>";
+        }
+        echo "</select>";
+        echo "</div>";
+        
+        // Service Selection
+        echo "<div class='form-group'>";
+        echo "<label>Select Service:</label>";
+        echo "<select name='service_id' required>";
+        foreach ($this->testData['services'] as $service) {
+            echo "<option value='{$service['id']}'>{$service['name']} ({$service['duration']} min)</option>";
+        }
+        echo "</select>";
+        echo "</div>";
+        
+        // Time Selection
+        echo "<div class='form-group'>";
+        echo "<label>Select Time:</label>";
+        echo "<select name='booking_time' required>";
+        echo "<option value=''>Select a date first</option>";
+        echo "</select>";
+        echo "</div>";
+        
+        echo "<button type='submit' class='btn btn-primary'>Simulate Booking</button>";
+        echo "</form>";
+        
+        // Display current bookings
+        $this->displayCurrentBookings();
+        
+        echo "</div>";
+        
+        // Add JavaScript for dynamic time slot loading
+        echo "<script>
+        document.querySelector('select[name=booking_date]').addEventListener('change', function() {
+            const date = this.value;
+            const timeSelect = document.querySelector('select[name=booking_time]');
+            timeSelect.innerHTML = '<option value=\"\">Loading times...</option>';
+            
+            fetch('get_available_times.php?date=' + date)
+                .then(response => response.json())
+                .then(data => {
+                    timeSelect.innerHTML = '<option value=\"\">Select a time</option>';
+                    if (data.success && data.times.length > 0) {
+                        data.times.forEach(time => {
+                            const option = document.createElement('option');
+                            option.value = time;
+                            option.textContent = time;
+                            timeSelect.appendChild(option);
+                        });
+                    } else {
+                        timeSelect.innerHTML = '<option value=\"\">No available times</option>';
+                    }
+                })
+                .catch(error => {
+                    timeSelect.innerHTML = '<option value=\"\">Error loading times</option>';
+                });
+        });
+        </script>";
+        
+        // Add CSS for the simulator
+        echo "<style>
+        .booking-simulator {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .booking-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .form-group label {
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .current-bookings {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        .booking-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        </style>";
+    }
+
+    private function displayCurrentBookings() {
+        echo "<div class='current-bookings'>";
+        echo "<h3>Current Bookings</h3>";
+        
+        $stmt = $this->db->getConnection()->prepare("
+            SELECT a.*, s.name as service_name, s.duration
+            FROM appointments a
+            JOIN services s ON a.service_id = s.id
+            WHERE a.barber_id = ?
+            AND a.appointment_date >= CURDATE()
+            ORDER BY a.appointment_date ASC, a.appointment_time ASC
+        ");
+        
+        $stmt->bind_param("i", $this->testData['barber']['id']);
+        $stmt->execute();
+        $stmt->bind_result(
+            $id, $user_id, $barber_id, $service_id, $date, 
+            $time, $status, $notes, $created_at, 
+            $service_name, $duration
+        );
+        
+        $hasBookings = false;
+        while ($stmt->fetch()) {
+            $hasBookings = true;
+            echo "<div class='booking-item'>";
+            echo "<strong>Date:</strong> " . date('D, M j, Y', strtotime($date)) . "<br>";
+            echo "<strong>Time:</strong> $time<br>";
+            echo "<strong>Service:</strong> $service_name ($duration min)<br>";
+            echo "<strong>Status:</strong> $status<br>";
+            echo "</div>";
+        }
+        
+        if (!$hasBookings) {
+            echo "<p>No current bookings found.</p>";
+        }
+        
+        $stmt->close();
+        echo "</div>";
+    }
+
+    public function handleBookingSimulation() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'simulate_booking') {
+            $date = $_POST['booking_date'];
+            $time = $_POST['booking_time'];
+            $service_id = $_POST['service_id'];
+            
+            try {
+                // Validate the booking
+                $isValid = $this->scheduleSync->validateBookingTime(
+                    $this->testData['barber']['id'],
+                    $date,
+                    $time,
+                    $service_id
+                );
+                
+                if ($isValid) {
+                    // Create the booking
+                    $conn = $this->db->getConnection();
+                    $stmt = $conn->prepare("
+                        INSERT INTO appointments 
+                        (user_id, barber_id, service_id, appointment_date, appointment_time, status) 
+                        VALUES (?, ?, ?, ?, ?, 'pending')
+                    ");
+                    
+                    $user_id = 1; // Test user ID
+                    $stmt->bind_param("iiiss", 
+                        $user_id,
+                        $this->testData['barber']['id'],
+                        $service_id,
+                        $date,
+                        $time
+                    );
+                    
+                    if ($stmt->execute()) {
+                        echo "<div class='alert alert-success'>Booking created successfully!</div>";
+                    } else {
+                        echo "<div class='alert alert-danger'>Error creating booking: " . $stmt->error . "</div>";
+                    }
+                } else {
+                    echo "<div class='alert alert-danger'>This time slot is not available.</div>";
+                }
+            } catch (Exception $e) {
+                echo "<div class='alert alert-danger'>Error: " . $e->getMessage() . "</div>";
+            }
+        }
+    }
+
     public function runAllTests() {
         echo "<h2>Running Booking System Tests</h2>";
         echo "<pre>";
@@ -305,6 +525,14 @@ class BookingTester {
 // Run the tests
 try {
     $tester = new BookingTester();
+    
+    // Handle booking simulation
+    $tester->handleBookingSimulation();
+    
+    // Display the booking simulator
+    $tester->renderBookingSimulator();
+    
+    // Run the automated tests
     $tester->runAllTests();
 } catch (Exception $e) {
     echo "<h2>Error Running Tests</h2>";
