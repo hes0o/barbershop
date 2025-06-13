@@ -77,15 +77,24 @@ class ScheduleSync {
                 AND a.appointment_date = ?
                 AND a.status != 'cancelled'
                 AND (
+                    -- New booking starts during an existing appointment
                     (a.appointment_time <= ? AND DATE_ADD(a.appointment_time, INTERVAL s.duration MINUTE) > ?)
-                    OR (a.appointment_time < DATE_ADD(?, INTERVAL ? MINUTE) AND a.appointment_time >= ?)
-                    OR (a.appointment_time >= ? AND a.appointment_time < DATE_ADD(?, INTERVAL ? MINUTE))
+                    OR
+                    -- New booking ends during an existing appointment
+                    (a.appointment_time < DATE_ADD(?, INTERVAL ? MINUTE) AND a.appointment_time >= ?)
+                    OR
+                    -- New booking completely contains an existing appointment
+                    (a.appointment_time >= ? AND a.appointment_time < DATE_ADD(?, INTERVAL ? MINUTE))
                 )
             ");
             
             if (!$stmt) {
                 throw new Exception("Error preparing overlap check query: " . $this->db->getConnection()->error);
             }
+            
+            // Convert times to timestamps for comparison
+            $booking_start = strtotime($time);
+            $booking_end = $booking_start + ($duration * 60);
             
             $stmt->bind_param("issssisssi", 
                 $barber_id, 
@@ -99,6 +108,7 @@ class ScheduleSync {
                 $time,
                 $duration
             );
+            
             $stmt->execute();
             $stmt->bind_result($existing_time, $existing_duration);
             

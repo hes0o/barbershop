@@ -178,26 +178,76 @@ class BookingTester {
             echo "Testing overlapping bookings for time: $first_time<br>";
             echo "Service duration: {$service['duration']} minutes<br>";
             
-            // Test booking at the same time
-            $isValid = $this->scheduleSync->validateBookingTime(
-                $this->testData['barber']['id'],
-                $this->testData['date'],
-                $first_time,
-                $service['id']
-            );
+            // Create a test booking
+            $conn = $this->db->getConnection();
+            $conn->begin_transaction();
             
-            echo "First booking at $first_time: " . ($isValid ? "Available" : "Not Available") . "<br>";
-            
-            // Test booking 15 minutes after
-            $next_time = date('H:i', strtotime($first_time . ' +15 minutes'));
-            $isValid = $this->scheduleSync->validateBookingTime(
-                $this->testData['barber']['id'],
-                $this->testData['date'],
-                $next_time,
-                $service['id']
-            );
-            
-            echo "Second booking at $next_time: " . ($isValid ? "Available" : "Not Available") . "<br>";
+            try {
+                // Insert test booking
+                $stmt = $conn->prepare("
+                    INSERT INTO appointments 
+                    (user_id, barber_id, service_id, appointment_date, appointment_time, status) 
+                    VALUES (?, ?, ?, ?, ?, 'pending')
+                ");
+                
+                $user_id = 1; // Test user ID
+                $status = 'pending';
+                
+                $stmt->bind_param("iiiss", 
+                    $user_id,
+                    $this->testData['barber']['id'],
+                    $service['id'],
+                    $this->testData['date'],
+                    $first_time
+                );
+                
+                $stmt->execute();
+                $booking_id = $conn->insert_id;
+                
+                echo "Created test booking at $first_time<br>";
+                
+                // Test booking at the same time
+                $isValid = $this->scheduleSync->validateBookingTime(
+                    $this->testData['barber']['id'],
+                    $this->testData['date'],
+                    $first_time,
+                    $service['id']
+                );
+                
+                echo "First booking at $first_time: " . ($isValid ? "Available" : "Not Available") . "<br>";
+                
+                // Test booking 15 minutes after
+                $next_time = date('H:i', strtotime($first_time . ' +15 minutes'));
+                $isValid = $this->scheduleSync->validateBookingTime(
+                    $this->testData['barber']['id'],
+                    $this->testData['date'],
+                    $next_time,
+                    $service['id']
+                );
+                
+                echo "Second booking at $next_time: " . ($isValid ? "Available" : "Not Available") . "<br>";
+                
+                // Test booking 30 minutes after
+                $next_time = date('H:i', strtotime($first_time . ' +30 minutes'));
+                $isValid = $this->scheduleSync->validateBookingTime(
+                    $this->testData['barber']['id'],
+                    $this->testData['date'],
+                    $next_time,
+                    $service['id']
+                );
+                
+                echo "Third booking at $next_time: " . ($isValid ? "Available" : "Not Available") . "<br>";
+                
+                // Clean up - delete test booking
+                $stmt = $conn->prepare("DELETE FROM appointments WHERE id = ?");
+                $stmt->bind_param("i", $booking_id);
+                $stmt->execute();
+                
+                $conn->commit();
+            } catch (Exception $e) {
+                $conn->rollback();
+                echo "Error during test: " . $e->getMessage() . "<br>";
+            }
         } else {
             echo "No available times to test overlapping bookings<br>";
         }
