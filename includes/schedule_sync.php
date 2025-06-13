@@ -10,17 +10,8 @@ class ScheduleSync {
     
     public function validateBookingTime($barber_id, $date, $time, $service_id) {
         try {
-            // Get service duration
-            $stmt = $this->db->getConnection()->prepare("SELECT duration FROM services WHERE id = ?");
-            $stmt->bind_param("i", $service_id);
-            $stmt->execute();
-            $stmt->bind_result($duration);
-            
-            if (!$stmt->fetch()) {
-                return false;
-            }
-            
-            $stmt->close();
+            // Get service duration (default to 60 minutes for all services)
+            $duration = 60;
             
             // Convert booking time to timestamp
             $booking_time = strtotime($time);
@@ -56,17 +47,16 @@ class ScheduleSync {
             
             // Check for overlapping appointments
             $stmt = $this->db->getConnection()->prepare("
-                SELECT appointment_time, s.duration
+                SELECT appointment_time
                 FROM appointments a
-                JOIN services s ON a.service_id = s.id
                 WHERE a.barber_id = ? 
                 AND a.appointment_date = ?
                 AND a.status != 'cancelled'
                 AND (
-                    (appointment_time <= ? AND DATE_ADD(appointment_time, INTERVAL s.duration MINUTE) > ?)
-                    OR (appointment_time < ? AND DATE_ADD(appointment_time, INTERVAL s.duration MINUTE) >= ?)
-                    OR (appointment_time >= ? AND DATE_ADD(appointment_time, INTERVAL s.duration MINUTE) <= ?)
-                    OR (appointment_time <= ? AND DATE_ADD(appointment_time, INTERVAL s.duration MINUTE) >= ?)
+                    (appointment_time <= ? AND DATE_ADD(appointment_time, INTERVAL 60 MINUTE) > ?)
+                    OR (appointment_time < ? AND DATE_ADD(appointment_time, INTERVAL 60 MINUTE) >= ?)
+                    OR (appointment_time >= ? AND DATE_ADD(appointment_time, INTERVAL 60 MINUTE) <= ?)
+                    OR (appointment_time <= ? AND DATE_ADD(appointment_time, INTERVAL 60 MINUTE) >= ?)
                 )
             ");
             
@@ -124,7 +114,7 @@ class ScheduleSync {
             $start = strtotime($start_time);
             $end = strtotime($end_time);
             
-            // Generate time slots in 30-minute intervals
+            // Generate time slots in one-hour intervals
             $time_slots = [];
             $current = $start;
             
@@ -136,8 +126,8 @@ class ScheduleSync {
                     $time_slots[] = $time_slot;
                 }
                 
-                // Move to next 30 minutes
-                $current = strtotime('+30 minutes', $current);
+                // Move to next hour
+                $current = strtotime('+1 hour', $current);
             }
             
             return $time_slots;

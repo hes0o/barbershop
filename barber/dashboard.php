@@ -35,6 +35,92 @@ $pending_appointments = array_filter($all_appointments, function($apt) {
 
 // Get weekly schedule
 $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
+
+// Function to generate time slots
+function generateTimeSlots($start_time, $end_time) {
+    $slots = [];
+    $current = strtotime($start_time);
+    $end = strtotime($end_time);
+    
+    while ($current < $end) {
+        $slots[] = date('H:i', $current);
+        $current = strtotime('+1 hour', $current);
+    }
+    
+    return $slots;
+}
+
+// Function to get appointments for a specific date
+function getAppointmentsForDate($date) {
+    global $db;
+    $barber = $db->getSingleBarber();
+    
+    if (!$barber) {
+        return [];
+    }
+    
+    $stmt = $db->getConnection()->prepare("
+        SELECT a.*, s.name as service_name, s.price, u.username as customer_name
+        FROM appointments a
+        JOIN services s ON a.service_id = s.id
+        JOIN users u ON a.user_id = u.id
+        WHERE a.barber_id = ? AND a.appointment_date = ?
+        ORDER BY a.appointment_time ASC
+    ");
+    
+    $stmt->bind_param("is", $barber['id'], $date);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $appointments = [];
+    while ($row = $result->fetch_assoc()) {
+        $appointments[] = $row;
+    }
+    
+    return $appointments;
+}
+
+// Get the selected date or default to today
+$selected_date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
+
+// Get barber's schedule for the selected date
+$day_of_week = strtolower(date('l', strtotime($selected_date)));
+$stmt = $db->getConnection()->prepare("
+    SELECT start_time, end_time, status
+    FROM barber_schedule
+    WHERE barber_id = ? AND day_of_week = ?
+");
+
+$barber = $db->getSingleBarber();
+$stmt->bind_param("is", $barber['id'], $day_of_week);
+$stmt->execute();
+$stmt->bind_result($start_time, $end_time, $status);
+
+$schedule = null;
+if ($stmt->fetch()) {
+    $schedule = [
+        'start_time' => $start_time,
+        'end_time' => $end_time,
+        'status' => $status
+    ];
+}
+$stmt->close();
+
+// Get appointments for the selected date
+$appointments = getAppointmentsForDate($selected_date);
+
+// Generate time slots
+$time_slots = [];
+if ($schedule && $schedule['status'] === 'available') {
+    $time_slots = generateTimeSlots($schedule['start_time'], $schedule['end_time']);
+}
+
+// Create a map of appointments by time
+$appointments_by_time = [];
+foreach ($appointments as $appointment) {
+    $time = date('H:i', strtotime($appointment['appointment_time']));
+    $appointments_by_time[$time] = $appointment;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
