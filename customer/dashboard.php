@@ -446,9 +446,43 @@ function getStatusColor($status) {
                             <select class="form-select" id="bookingDate" name="date" required>
                                 <option value="">Choose a date</option>
                                 <?php
-                                $available_dates = $db->getAvailableDates($barber['id']);
-                                foreach ($available_dates as $date) {
-                                    echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                // Get the active barber
+                                $barber = $db->getSingleBarber();
+                                if ($barber) {
+                                    // Get available dates based on barber's schedule
+                                    $available_dates = [];
+                                    $scheduleSync = new ScheduleSync();
+                                    
+                                    // Get dates for the next 30 days
+                                    for ($i = 0; $i < 30; $i++) {
+                                        $date = date('Y-m-d', strtotime("+$i days"));
+                                        $day_of_week = strtolower(date('l', strtotime($date)));
+                                        
+                                        // Check if barber is available on this day
+                                        $stmt = $db->getConnection()->prepare("
+                                            SELECT status 
+                                            FROM barber_schedule 
+                                            WHERE barber_id = ? AND day_of_week = ?
+                                        ");
+                                        
+                                        $stmt->bind_param("is", $barber['id'], $day_of_week);
+                                        $stmt->execute();
+                                        $stmt->bind_result($status);
+                                        
+                                        if ($stmt->fetch() && $status === 'available') {
+                                            // Check if there are any available time slots
+                                            $time_slots = $scheduleSync->getAvailableTimeSlots($barber['id'], $date);
+                                            if (!empty($time_slots)) {
+                                                $available_dates[] = $date;
+                                            }
+                                        }
+                                        $stmt->close();
+                                    }
+                                    
+                                    // Display available dates
+                                    foreach ($available_dates as $date) {
+                                        echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                    }
                                 }
                                 ?>
                             </select>

@@ -10,119 +10,82 @@ class ScheduleSync {
     
     public function validateBookingTime($barber_id, $date, $time, $service_id) {
         try {
-            // Get service duration
-            $stmt = $this->db->getConnection()->prepare("
-                SELECT duration 
-                FROM services 
-                WHERE id = ?
-            ");
+            // Get service duration (default to 60 minutes for all services)
+            $duration = 60;
             
-            if (!$stmt) {
-                throw new Exception("Error preparing service query: " . $this->db->getConnection()->error);
-            }
+            // Convert booking time to timestamp
+            $booking_time = strtotime($time);
+            $booking_end = strtotime("+{$duration} minutes", $booking_time);
             
-            $stmt->bind_param("i", $service_id);
-            $stmt->execute();
-            $stmt->bind_result($duration);
-            
-            if (!$stmt->fetch()) {
-                throw new Exception("Service not found");
-            }
-            
-            $stmt->close();
-
-            // Get barber's schedule for this day
+            // Check if the booking time is within barber's schedule
             $day_of_week = strtolower(date('l', strtotime($date)));
+            
             $stmt = $this->db->getConnection()->prepare("
                 SELECT start_time, end_time, status
                 FROM barber_schedule
                 WHERE barber_id = ? AND day_of_week = ?
             ");
             
-            if (!$stmt) {
-                throw new Exception("Error preparing schedule query: " . $this->db->getConnection()->error);
-            }
-            
             $stmt->bind_param("is", $barber_id, $day_of_week);
             $stmt->execute();
             $stmt->bind_result($start_time, $end_time, $status);
             
-            if (!$stmt->fetch()) {
-                throw new Exception("No schedule found for this day");
+            if (!$stmt->fetch() || $status !== 'available') {
+                return false;
             }
             
             $stmt->close();
-
-            // If barber is unavailable, return false
-            if ($status === 'unavailable') {
+            
+            // Convert schedule times to timestamps
+            $schedule_start = strtotime($start_time);
+            $schedule_end = strtotime($end_time);
+            
+            // Check if booking is within schedule
+            if ($booking_time < $schedule_start || $booking_end > $schedule_end) {
                 return false;
             }
-
-            // Check if time is within working hours
-            $booking_time = strtotime($time);
-            $start_timestamp = strtotime($start_time);
-            $end_timestamp = strtotime($end_time);
-            $booking_end = $booking_time + ($duration * 60);
-
-            if ($booking_time < $start_timestamp || $booking_end > $end_timestamp) {
-                return false;
-            }
-
+            
             // Check for overlapping appointments
             $stmt = $this->db->getConnection()->prepare("
-                SELECT a.appointment_time, s.duration
+                SELECT appointment_time, s.duration
                 FROM appointments a
                 JOIN services s ON a.service_id = s.id
                 WHERE a.barber_id = ? 
                 AND a.appointment_date = ?
                 AND a.status != 'cancelled'
                 AND (
-                    -- New booking starts during an existing appointment
-                    (a.appointment_time <= ? AND DATE_ADD(a.appointment_time, INTERVAL s.duration MINUTE) > ?)
-                    OR
-                    -- New booking ends during an existing appointment
-                    (a.appointment_time < DATE_ADD(?, INTERVAL ? MINUTE) AND a.appointment_time >= ?)
-                    OR
-                    -- New booking completely contains an existing appointment
-                    (a.appointment_time >= ? AND a.appointment_time < DATE_ADD(?, INTERVAL ? MINUTE))
+                    (appointment_time <= ? AND DATE_ADD(appointment_time, INTERVAL s.duration MINUTE) > ?)
+                    OR (appointment_time < ? AND DATE_ADD(appointment_time, INTERVAL s.duration MINUTE) >= ?)
+                    OR (appointment_time >= ? AND DATE_ADD(appointment_time, INTERVAL s.duration MINUTE) <= ?)
+                    OR (appointment_time <= ? AND DATE_ADD(appointment_time, INTERVAL s.duration MINUTE) >= ?)
                 )
             ");
             
-            if (!$stmt) {
-                throw new Exception("Error preparing overlap check query: " . $this->db->getConnection()->error);
-            }
-            
-            // Convert times to timestamps for comparison
-            $booking_start = strtotime($time);
-            $booking_end = $booking_start + ($duration * 60);
-            
-            $stmt->bind_param("issssisssi", 
-                $barber_id, 
-                $date, 
-                $time, 
-                $time, 
-                $time, 
-                $duration, 
+            $stmt->bind_param(
+                "isssssssss",
+                $barber_id,
+                $date,
                 $time,
                 $time,
+                date('H:i:s', $booking_end),
+                date('H:i:s', $booking_end),
                 $time,
-                $duration
+                date('H:i:s', $booking_end),
+                $time,
+                date('H:i:s', $booking_end)
             );
             
             $stmt->execute();
-            $stmt->bind_result($existing_time, $existing_duration);
+            $stmt->store_result();
             
-            if ($stmt->fetch()) {
-                $stmt->close();
-                return false;
-            }
-            
+            $has_overlap = $stmt->num_rows > 0;
             $stmt->close();
-            return true;
-
+            
+            return !$has_overlap;
+            
         } catch (Exception $e) {
-            error_log("Error in validateBookingTime: " . $e->getMessage());
-            throw $e;
+            error_log("Error validating booking time: " . $e->getMessage());
+            return false;
         }
     }
     
@@ -130,7 +93,7 @@ class ScheduleSync {
         try {
             // Get the day of week
             $day_of_week = strtolower(date('l', strtotime($date)));
-
+            
             // Get barber's schedule for this day
             $stmt = $this->db->getConnection()->prepare("
                 SELECT start_time, end_time, status
@@ -138,91 +101,41 @@ class ScheduleSync {
                 WHERE barber_id = ? AND day_of_week = ?
             ");
             
-            if (!$stmt) {
-                throw new Exception("Error preparing schedule query: " . $this->db->getConnection()->error);
-            }
-            
             $stmt->bind_param("is", $barber_id, $day_of_week);
             $stmt->execute();
             $stmt->bind_result($start_time, $end_time, $status);
             
-            if (!$stmt->fetch()) {
-                throw new Exception("No schedule found for this day");
-            }
-            
-            $stmt->close();
-
-            // If barber is unavailable, return empty array
-            if ($status === 'unavailable') {
+            if (!$stmt->fetch() || $status !== 'available') {
                 return [];
             }
-
-            // Get existing appointments for this date
-            $stmt = $this->db->getConnection()->prepare("
-                SELECT a.appointment_time, s.duration
-                FROM appointments a
-                JOIN services s ON a.service_id = s.id
-                WHERE a.barber_id = ? 
-                AND a.appointment_date = ?
-                AND a.status != 'cancelled'
-            ");
-            
-            if (!$stmt) {
-                throw new Exception("Error preparing appointments query: " . $this->db->getConnection()->error);
-            }
-            
-            $stmt->bind_param("is", $barber_id, $date);
-            $stmt->execute();
-            $stmt->bind_result($appointment_time, $duration);
-            
-            $booked_slots = [];
-            while ($stmt->fetch()) {
-                $start = strtotime($appointment_time);
-                $end = $start + ($duration * 60);
-                $booked_slots[] = [
-                    'start' => $start,
-                    'end' => $end
-                ];
-            }
             
             $stmt->close();
-
-            // Generate available time slots
-            $start_timestamp = strtotime($start_time);
-            $end_timestamp = strtotime($end_time);
-            $interval = 30 * 60; // 30 minutes in seconds
-            $available_times = [];
-
-            // Filter out past times for today
-            $now = time();
-            if ($date === date('Y-m-d')) {
-                $start_timestamp = max($start_timestamp, $now + 3600); // Add 1 hour buffer
-            }
-
-            for ($time = $start_timestamp; $time < $end_timestamp; $time += $interval) {
-                $is_available = true;
-                $slot_end = $time + $interval;
-
-                // Check if this slot overlaps with any booked appointments
-                foreach ($booked_slots as $booked) {
-                    if (($time >= $booked['start'] && $time < $booked['end']) ||
-                        ($slot_end > $booked['start'] && $slot_end <= $booked['end']) ||
-                        ($time <= $booked['start'] && $slot_end >= $booked['end'])) {
-                        $is_available = false;
-                        break;
-                    }
+            
+            // Convert times to timestamps for easier calculation
+            $start = strtotime($start_time);
+            $end = strtotime($end_time);
+            
+            // Generate time slots in one-hour intervals
+            $time_slots = [];
+            $current = $start;
+            
+            while ($current < $end) {
+                $time_slot = date('H:i', $current);
+                
+                // Check if this time slot is available
+                if ($this->validateBookingTime($barber_id, $date, $time_slot, 1)) {
+                    $time_slots[] = $time_slot;
                 }
-
-                if ($is_available) {
-                    $available_times[] = date('H:i', $time);
-                }
+                
+                // Move to next hour
+                $current = strtotime('+1 hour', $current);
             }
-
-            return $available_times;
-
+            
+            return $time_slots;
+            
         } catch (Exception $e) {
-            error_log("Error in getAvailableTimeSlots: " . $e->getMessage());
-            throw $e;
+            error_log("Error getting available time slots: " . $e->getMessage());
+            return [];
         }
     }
     
