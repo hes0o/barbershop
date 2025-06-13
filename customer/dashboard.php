@@ -449,9 +449,13 @@ function getStatusColor($status) {
                             <select class="form-select" id="bookingDate" name="date" required>
                                 <option value="">Choose a date</option>
                                 <?php
-                                $available_dates = $db->getAvailableDates($barber['id']);
-                                foreach ($available_dates as $date) {
-                                    echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                // Get the first active barber
+                                $barber = $db->getSingleBarber();
+                                if ($barber) {
+                                    $available_dates = $db->getAvailableDates($barber['id']);
+                                    foreach ($available_dates as $date) {
+                                        echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                    }
                                 }
                                 ?>
                             </select>
