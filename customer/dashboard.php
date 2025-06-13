@@ -445,14 +445,14 @@ function getStatusColor($status) {
                             <select class="form-select form-select-lg" id="bookingDate" name="date" required>
                                 <option value="">Select a date</option>
                                 <?php
-                                $dates = [];
-                                $today = strtotime('today');
-                                for ($i = 0; $i < 14; $i++) {
-                                    $date = strtotime("+{$i} day", $today);
-                                    $dates[] = date('Y-m-d', $date);
-                                }
-                                foreach ($dates as $date) {
-                                    echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                // Get the active barber
+                                $barber = $db->getSingleBarber();
+                                if ($barber) {
+                                    // Get available dates based on barber's schedule
+                                    $available_dates = $db->getAvailableDates($barber['id']);
+                                    foreach ($available_dates as $date) {
+                                        echo '<option value="' . $date . '">' . date('D, M j, Y', strtotime($date)) . '</option>';
+                                    }
                                 }
                                 ?>
                             </select>
@@ -561,9 +561,7 @@ function getStatusColor($status) {
                     data.times.forEach(time => {
                         const option = document.createElement('option');
                         option.value = time;
-                        // Format time to show only hours
-                        const hour = time.split(':')[0];
-                        option.textContent = `${hour}:00`;
+                        option.textContent = time;
                         timeSelect.appendChild(option);
                     });
                     timeSelect.disabled = false;
