@@ -345,11 +345,9 @@ foreach ($appointments as $appointment) {
                                                 <select class="form-select" name="schedule[<?php echo $dayLower; ?>][start_time]">
                                                     <?php
                                                     for ($h = 8; $h <= 20; $h++) {
-                                                        for ($m = 0; $m < 60; $m += 30) {
-                                                            $time = sprintf('%02d:%02d', $h, $m);
-                                                            $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
-                                                            echo "<option value=\"$time\" $selected>$time</option>";
-                                                        }
+                                                        $time = sprintf('%02d:00', $h);
+                                                        $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
+                                                        echo "<option value=\"$time\" $selected>$time</option>";
                                                     }
                                                     ?>
                                                 </select>
@@ -358,11 +356,9 @@ foreach ($appointments as $appointment) {
                                                 <select class="form-select" name="schedule[<?php echo $dayLower; ?>][end_time]">
                                                     <?php
                                                     for ($h = 8; $h <= 20; $h++) {
-                                                        for ($m = 0; $m < 60; $m += 30) {
-                                                            $time = sprintf('%02d:%02d', $h, $m);
-                                                            $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
-                                                            echo "<option value=\"$time\" $selected>$time</option>";
-                                                        }
+                                                        $time = sprintf('%02d:00', $h);
+                                                        $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
+                                                        echo "<option value=\"$time\" $selected>$time</option>";
                                                     }
                                                     ?>
                                                 </select>
