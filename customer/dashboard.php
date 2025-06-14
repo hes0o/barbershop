@@ -398,11 +398,10 @@ if ($barber && $selected_date) {
     </style>
 </head>
 <body>
-    <a href="<?php echo dirname($_SERVER['SCRIPT_NAME']) === '/customer' ? '../logout.php' : BASE_URL . '/logout.php'; ?>" class="sign-out-btn">
-        <i class="fas fa-sign-out-alt"></i> Sign Out
-    </a>
-
     <div class="container py-4">
+        <div class="text-center mb-4">
+            <span class="logo" style="font-size:3rem;font-weight:700;color:#3498db;">BladeX</span>
+        </div>
         <?php if ($message): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <?php echo $message; ?>
