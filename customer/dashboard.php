@@ -545,12 +545,10 @@ function getStatusColor($status) {
             const response = await fetch(`get_available_times.php?date=${date}`);
             const data = await response.json();
 
-            timeSelect.innerHTML = '<option value="">Select a time</option>';
-            
+            timeSelect.innerHTML = '';
             if (data.success && data.times && data.times.length > 0) {
                 // Sort times in ascending order
                 data.times.sort();
-                
                 data.times.forEach(time => {
                     const option = document.createElement('option');
                     option.value = time;
@@ -559,23 +557,40 @@ function getStatusColor($status) {
                 });
                 timeSelect.disabled = false;
             } else {
-                timeSelect.innerHTML = '<option value="">No available times</option>';
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No available times';
+                timeSelect.appendChild(option);
+                timeSelect.disabled = true;
             }
         } catch (error) {
             console.error('Error loading times:', error);
-            timeSelect.innerHTML = '<option value="">Error loading times</option>';
+            timeSelect.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No available times (error)';
+            timeSelect.appendChild(option);
+            timeSelect.disabled = true;
         }
     }
 
     // Event Listeners
     document.getElementById('bookingDate').addEventListener('change', function() {
         const date = this.value;
+        const timeSelect = document.getElementById('bookingTime');
         if (date) {
             loadAvailableTimes(date);
         } else {
-            const timeSelect = document.getElementById('bookingTime');
             timeSelect.innerHTML = '<option value="">Select a date first</option>';
             timeSelect.disabled = true;
+        }
+    });
+
+    // On page load, if a date is preselected, load times
+    window.addEventListener('DOMContentLoaded', function() {
+        const date = document.getElementById('bookingDate').value;
+        if (date) {
+            loadAvailableTimes(date);
         }
     });
 
