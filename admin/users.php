@@ -57,8 +57,8 @@ $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'id';
 $sort_order = isset($_GET['order']) ? $_GET['order'] : 'ASC';
 
 // Build query with filters
-$query = "SELECT u.*, 
-          COUNT(DISTINCT a.id) as total_appointments,
+$query = "SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.role, u.phone, u.created_at, 
+          COUNT(DISTINCT a.id) as total_appointments, 
           MAX(a.appointment_date) as last_activity
           FROM users u 
           LEFT JOIN appointments a ON u.id = a.user_id";
