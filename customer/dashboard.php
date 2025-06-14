@@ -487,6 +487,12 @@ if ($barber && $selected_date) {
         </div>
 
         <!-- Modern & Beautiful Booking Form -->
+        <?php if (empty($available_days)): ?>
+            <div class="alert alert-warning text-center mb-4">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                No appointments are available at this moment. Please check back later.
+            </div>
+        <?php else: ?>
         <div class="booking-section mb-4">
             <div class="card shadow-lg border-0">
                 <div class="card-body p-4">
@@ -548,6 +554,7 @@ if ($barber && $selected_date) {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
