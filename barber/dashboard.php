@@ -343,6 +343,11 @@ foreach ($appointments as $appointment) {
                                             'end_time' => '',
                                             'status' => 'unavailable'
                                         ];
+                                        // If available but time is 00:00, default to 09:00/17:00
+                                        if ($daySchedule['status'] === 'available') {
+                                            if ($daySchedule['start_time'] === '00:00') $daySchedule['start_time'] = '09:00';
+                                            if ($daySchedule['end_time'] === '00:00') $daySchedule['end_time'] = '17:00';
+                                        }
                                         ?>
                                         <tr>
                                             <td><?php echo $day; ?></td>
