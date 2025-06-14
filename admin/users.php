@@ -260,6 +260,9 @@ $role_stmt->close();
                                 <td><?php echo $user['last_activity'] ? date('M j, Y', strtotime($user['last_activity'])) : 'Never'; ?></td>
                                 <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
                                 <td class="action-buttons">
+                                    <button class="btn btn-sm btn-secondary" onclick="showUserInfo(<?php echo htmlspecialchars(json_encode($user)); ?>)">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-info" onclick="impersonateUser(<?php echo $user['id']; ?>)">
                                         <i class="fas fa-user-secret"></i>
                                     </button>
@@ -357,6 +360,31 @@ $role_stmt->close();
         </div>
     </div>
 
+    <!-- User Info Modal -->
+    <div class="modal fade" id="userInfoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">User Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="list-group">
+                        <li class="list-group-item"><strong>ID:</strong> <span id="infoId"></span></li>
+                        <li class="list-group-item"><strong>Username:</strong> <span id="infoUsername"></span></li>
+                        <li class="list-group-item"><strong>Email:</strong> <span id="infoEmail"></span></li>
+                        <li class="list-group-item"><strong>Role:</strong> <span id="infoRole"></span></li>
+                        <li class="list-group-item"><strong>Phone:</strong> <span id="infoPhone"></span></li>
+                        <li class="list-group-item"><strong>Created At:</strong> <span id="infoCreated"></span></li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
@@ -395,6 +423,16 @@ $role_stmt->close();
             if (confirm('Are you sure you want to impersonate this user? You will be logged in as them.')) {
                 window.location.href = `impersonate.php?id=${userId}`;
             }
+        }
+
+        function showUserInfo(user) {
+            document.getElementById('infoId').textContent = user.id;
+            document.getElementById('infoUsername').textContent = user.username;
+            document.getElementById('infoEmail').textContent = user.email;
+            document.getElementById('infoRole').textContent = user.role;
+            document.getElementById('infoPhone').textContent = user.phone || '-';
+            document.getElementById('infoCreated').textContent = user.created_at ? new Date(user.created_at).toLocaleString() : '-';
+            new bootstrap.Modal(document.getElementById('userInfoModal')).show();
         }
     </script>
 </body>
