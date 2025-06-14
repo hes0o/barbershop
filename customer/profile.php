@@ -18,39 +18,34 @@ $customer = $db->getUserById($_SESSION['user_id']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_profile'])) {
-        $username = trim($_POST['username']);
+        $first_name = trim($_POST['first_name']);
+        $last_name = trim($_POST['last_name']);
         $email = trim($_POST['email']);
         $phone = trim($_POST['phone']);
 
         // Validate input
-        if (empty($username) || empty($email)) {
-            $error = 'Username and email are required';
+        if (empty($first_name) || empty($last_name) || empty($email)) {
+            $error = 'First name, last name, and email are required';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Invalid email format';
         } else {
-            // Check if username or email is already taken by another user
-            $existing_user = $db->getUserByUsername($username);
-            if ($existing_user && $existing_user['id'] !== $_SESSION['user_id']) {
-                $error = 'Username already taken';
+            // Check if email is already taken by another user
+            $existing_email = $db->getUserByEmail($email);
+            if ($existing_email && $existing_email['id'] !== $_SESSION['user_id']) {
+                $error = 'Email already taken';
             } else {
-                $existing_email = $db->getUserByEmail($email);
-                if ($existing_email && $existing_email['id'] !== $_SESSION['user_id']) {
-                    $error = 'Email already taken';
+                // Update user info
+                $stmt = $db->getConnection()->prepare("
+                    UPDATE users 
+                    SET first_name = ?, last_name = ?, email = ?, phone = ? 
+                    WHERE id = ?
+                ");
+                $stmt->bind_param("ssssi", $first_name, $last_name, $email, $phone, $_SESSION['user_id']);
+                if ($stmt->execute()) {
+                    $message = 'Profile updated successfully';
+                    $customer = $db->getUserById($_SESSION['user_id']); // Refresh customer data
                 } else {
-                    // Update user info
-                    $stmt = $db->getConnection()->prepare("
-                        UPDATE users 
-                        SET username = ?, email = ?, phone = ? 
-                        WHERE id = ?
-                    ");
-                    $stmt->bind_param("sssi", $username, $email, $phone, $_SESSION['user_id']);
-                    
-                    if ($stmt->execute()) {
-                        $message = 'Profile updated successfully';
-                        $customer = $db->getUserById($_SESSION['user_id']); // Refresh customer data
-                    } else {
-                        $error = 'Failed to update profile';
-                    }
+                    $error = 'Failed to update profile';
                 }
             }
         }
@@ -137,26 +132,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h3 class="mb-4">Profile Information</h3>
             <form method="POST" action="" class="needs-validation" novalidate>
                 <div class="form-floating">
-                    <input type="text" class="form-control" id="username" name="username" 
-                           placeholder="Username" required 
-                           value="<?php echo htmlspecialchars($customer['username']); ?>">
-                    <label for="username">Username</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                           placeholder="First Name" required 
+                           value="<?php echo htmlspecialchars($customer['first_name'] ?? ''); ?>">
+                    <label for="first_name">First Name</label>
                 </div>
-
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                           placeholder="Last Name" required 
+                           value="<?php echo htmlspecialchars($customer['last_name'] ?? ''); ?>">
+                    <label for="last_name">Last Name</label>
+                </div>
                 <div class="form-floating">
                     <input type="email" class="form-control" id="email" name="email" 
                            placeholder="Email" required
                            value="<?php echo htmlspecialchars($customer['email']); ?>">
                     <label for="email">Email address</label>
                 </div>
-
                 <div class="form-floating">
                     <input type="tel" class="form-control" id="phone" name="phone" 
                            placeholder="Phone Number"
                            value="<?php echo htmlspecialchars($customer['phone'] ?? ''); ?>">
                     <label for="phone">Phone Number (optional)</label>
                 </div>
-
                 <button type="submit" name="update_profile" class="btn btn-primary">
                     Update Profile
                 </button>

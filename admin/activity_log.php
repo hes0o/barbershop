@@ -97,7 +97,7 @@ $users = $db->getAllUsers();
                                 <option value="">All Users</option>
                                 <?php foreach ($users as $user): ?>
                                     <option value="<?php echo $user['id']; ?>" <?php echo isset($_GET['user_id']) && $_GET['user_id'] == $user['id'] ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($user['username']); ?>
+                                        <?php echo htmlspecialchars(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -153,7 +153,7 @@ $users = $db->getAllUsers();
                             <?php foreach ($logs as $log): ?>
                                 <tr>
                                     <td><?php echo $log['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($log['username']); ?></td>
+                                    <td><?php echo htmlspecialchars(($log['first_name'] ?? '') . ' ' . ($log['last_name'] ?? '')); ?></td>
                                     <td><?php echo htmlspecialchars($log['action']); ?></td>
                                     <td><?php echo htmlspecialchars($log['details']); ?></td>
                                     <td><?php echo date('Y-m-d H:i:s', strtotime($log['created_at'])); ?></td>

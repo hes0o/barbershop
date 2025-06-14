@@ -101,12 +101,13 @@ if (!empty($params)) {
 $stmt->execute();
 // Manual fetch instead of get_result()
 $stmt->store_result();
-$stmt->bind_result($id, $username, $email, $password, $role, $phone, $created_at, $total_appointments, $last_activity);
+$stmt->bind_result($id, $first_name, $last_name, $email, $password, $role, $phone, $created_at, $total_appointments, $last_activity);
 $users = [];
 while ($stmt->fetch()) {
     $users[] = [
         'id' => $id,
-        'username' => $username,
+        'first_name' => $first_name,
+        'last_name' => $last_name,
         'email' => $email,
         'password' => $password,
         'role' => $role,
@@ -244,7 +245,7 @@ $role_stmt->close();
                                         <div class="user-avatar me-2">
                                             <i class="fas fa-user"></i>
                                         </div>
-                                        <?php echo htmlspecialchars($user['username']); ?>
+                                        <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
                                     </div>
                                 </td>
                                 <td><?php echo htmlspecialchars($user['email']); ?></td>
@@ -371,7 +372,8 @@ $role_stmt->close();
                 <div class="modal-body">
                     <ul class="list-group">
                         <li class="list-group-item"><strong>ID:</strong> <span id="infoId"></span></li>
-                        <li class="list-group-item"><strong>Username:</strong> <span id="infoUsername"></span></li>
+                        <li class="list-group-item"><strong>First Name:</strong> <span id="infoFirstName"></span></li>
+                        <li class="list-group-item"><strong>Last Name:</strong> <span id="infoLastName"></span></li>
                         <li class="list-group-item"><strong>Email:</strong> <span id="infoEmail"></span></li>
                         <li class="list-group-item"><strong>Role:</strong> <span id="infoRole"></span></li>
                         <li class="list-group-item"><strong>Phone:</strong> <span id="infoPhone"></span></li>
@@ -427,7 +429,8 @@ $role_stmt->close();
 
         function showUserInfo(user) {
             document.getElementById('infoId').textContent = user.id;
-            document.getElementById('infoUsername').textContent = user.username;
+            document.getElementById('infoFirstName').textContent = user.first_name;
+            document.getElementById('infoLastName').textContent = user.last_name;
             document.getElementById('infoEmail').textContent = user.email;
             document.getElementById('infoRole').textContent = user.role;
             document.getElementById('infoPhone').textContent = user.phone || '-';
