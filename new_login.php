@@ -77,7 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barbershop Login & Register</title>
+    <title>BladeX - Login & Registration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -86,152 +89,140 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             min-height: 100vh;
             font-family: 'Poppins', sans-serif;
         }
-        .auth-wrapper {
-            display: flex;
-            min-height: 100vh;
-            align-items: center;
-            justify-content: center;
+        .auth-container {
+            max-width: 1000px;
+            width: 95%;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
         }
-        .auth-card {
-            background: #fff;
-            border-radius: 18px;
-            box-shadow: 0 8px 32px rgba(79,140,255,0.10);
-            overflow: hidden;
-            display: flex;
-            width: 900px;
-            max-width: 98vw;
+        .auth-container:hover {
+            transform: translateY(-5px);
         }
-        .auth-side {
-            flex: 1 1 0;
-            padding: 3rem 2.5rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .auth-side.bg {
-            background: linear-gradient(135deg, #4f8cff 60%, #6ee7b7 100%);
-            color: #fff;
-            align-items: center;
+        .auth-header {
             text-align: center;
-            justify-content: center;
+            margin-bottom: 2rem;
+            position: relative;
         }
-        .auth-side.bg h2 {
+        .auth-header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
             font-weight: 700;
-            font-size: 2.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .auth-header p {
+            color: #666;
+            margin-bottom: 0;
+            font-size: 1.1rem;
+        }
+        .form-control {
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        .form-control:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        .btn-auth {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            width: 100%;
+            margin-top: 1.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            background: #3498db;
+            border: none;
+        }
+        .btn-auth:hover:not(:disabled) {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        .btn-auth:disabled {
+            background: #b6c6e3;
+            cursor: not-allowed;
+        }
+        .logo {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #3498db;
             margin-bottom: 1rem;
         }
-        .auth-side.bg p {
-            font-size: 1.1rem;
-            opacity: 0.95;
+        .split-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
         }
-        .auth-side.bg i {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-        }
-        .form-label { font-weight: 500; }
-        .form-control { border-radius: 10px; }
-        .btn-auth { border-radius: 10px; font-weight: 600; }
-        .switch-link { color: #4f8cff; cursor: pointer; text-decoration: underline; }
-        .switch-link:hover { color: #2563eb; }
-        @media (max-width: 900px) {
-            .auth-card { flex-direction: column; width: 98vw; }
-            .auth-side.bg { min-height: 180px; }
+        .split-layout > div {
+            flex: 1;
+            min-width: 300px;
         }
     </style>
 </head>
 <body>
-<div class="auth-wrapper">
-    <div class="auth-card animate__animated animate__fadeInDown">
-        <!-- Left: Login -->
-        <div class="auth-side">
-            <h2 class="mb-4 text-center"><i class="fas fa-sign-in-alt text-primary me-2"></i>Sign In</h2>
-            <?php if ($error && (!isset($_POST['action']) || $_POST['action'] === 'login')): ?>
-                <div class="alert alert-danger animate__animated animate__fadeInDown"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-            <?php if ($success && (!isset($_POST['action']) || $_POST['action'] === 'login')): ?>
-                <div class="alert alert-success animate__animated animate__fadeInDown"><?php echo htmlspecialchars($success); ?></div>
-            <?php endif; ?>
-            <form method="POST" autocomplete="off">
-                <input type="hidden" name="action" value="login">
-                <div class="mb-3">
-                    <label for="login_email" class="form-label">Email address</label>
-                    <input type="email" class="form-control" id="login_email" name="email" required autofocus>
-                </div>
-                <div class="mb-3">
-                    <label for="login_password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="login_password" name="password" required>
-                </div>
-                <button type="submit" class="btn btn-primary w-100 btn-auth">Login</button>
-            </form>
-            <div class="mt-3 text-center">
-                <span>Don't have an account? <span class="switch-link" onclick="switchToRegister()">Register</span></span>
+    <div class="container d-flex align-items-center justify-content-center min-vh-100">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="logo">BladeX</div>
+                <h1>Welcome to BladeX</h1>
+                <p>Sign in to your account or create a new one</p>
             </div>
-        </div>
-        <!-- Right: Register -->
-        <div class="auth-side bg" id="registerSide" style="display:none;">
-            <i class="fas fa-user-plus mb-3"></i>
-            <h2>Register</h2>
-            <?php if ($error && isset($_POST['action']) && $_POST['action'] === 'register'): ?>
-                <div class="alert alert-danger animate__animated animate__fadeInDown"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-            <?php if ($success && isset($_POST['action']) && $_POST['action'] === 'register'): ?>
-                <div class="alert alert-success animate__animated animate__fadeInDown"><?php echo htmlspecialchars($success); ?></div>
-            <?php endif; ?>
-            <form method="POST" autocomplete="off">
-                <input type="hidden" name="action" value="register">
-                <div class="row g-2">
-                    <div class="col-6 mb-2">
-                        <label class="form-label">First Name</label>
-                        <input type="text" class="form-control" name="first_name" required>
-                    </div>
-                    <div class="col-6 mb-2">
-                        <label class="form-label">Last Name</label>
-                        <input type="text" class="form-control" name="last_name" required>
-                    </div>
+            <div class="split-layout">
+                <div>
+                    <h2>Login</h2>
+                    <form method="POST" action="" class="needs-validation" novalidate>
+                        <input type="hidden" name="action" value="login">
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control" id="login-email" name="email" placeholder="name@example.com" required>
+                            <label for="login-email">Email address</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="login-password" name="password" placeholder="Password" required>
+                            <label for="login-password">Password</label>
+                        </div>
+                        <button type="submit" class="btn btn-auth">Sign In</button>
+                    </form>
                 </div>
-                <div class="mb-2">
-                    <label class="form-label">Username</label>
-                    <input type="text" class="form-control" name="username" required>
+                <div>
+                    <h2>Register</h2>
+                    <form method="POST" action="" class="needs-validation" novalidate>
+                        <input type="hidden" name="action" value="register">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="register-username" name="username" placeholder="Username" required>
+                            <label for="register-username">Username</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control" id="register-email" name="email" placeholder="name@example.com" required>
+                            <label for="register-email">Email address</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="tel" class="form-control" id="register-phone" name="phone" pattern="[0-9]{10}" placeholder="Phone Number">
+                            <label for="register-phone">Phone Number</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="register-password" name="password" placeholder="Password" required minlength="6">
+                            <label for="register-password">Password</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="register-confirm-password" name="confirm_password" placeholder="Confirm Password" required>
+                            <label for="register-confirm-password">Confirm Password</label>
+                        </div>
+                        <button type="submit" class="btn btn-auth">Create Account</button>
+                    </form>
                 </div>
-                <div class="mb-2">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-control" name="email" required>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Phone Number</label>
-                    <input type="text" class="form-control" name="phone" required>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-control" name="password" required>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Confirm Password</label>
-                    <input type="password" class="form-control" name="confirm_password" required>
-                </div>
-                <button type="submit" class="btn btn-success w-100 btn-auth mt-2">Register</button>
-            </form>
-            <div class="mt-3 text-center">
-                <span>Already have an account? <span class="switch-link" onclick="switchToLogin()">Login</span></span>
             </div>
         </div>
     </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.js"></script>
-<script>
-    function switchToRegister() {
-        document.querySelector('.auth-side').style.display = 'none';
-        document.getElementById('registerSide').style.display = 'flex';
-    }
-    function switchToLogin() {
-        document.querySelector('.auth-side').style.display = 'flex';
-        document.getElementById('registerSide').style.display = 'none';
-    }
-    // Auto-switch to register if registration error/success
-    <?php if (isset($_POST['action']) && $_POST['action'] === 'register'): ?>
-        switchToRegister();
-    <?php endif; ?>
-</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 
