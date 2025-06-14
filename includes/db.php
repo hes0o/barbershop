@@ -960,56 +960,21 @@ class Database {
 
     public function getAvailableTimeSlots($barber_id, $date) {
         try {
-            // Get the day of week
             $day_of_week = strtolower(date('l', strtotime($date)));
-            
-            // Get the barber's schedule for this day
-            $stmt = $this->conn->prepare("
-                SELECT start_time, end_time, status
-                FROM barber_schedule
-                WHERE barber_id = ? AND day_of_week = ?
-            ");
-            
-            if ($stmt === false) {
-                error_log("Error preparing schedule query: " . $this->conn->error);
+            $weekly_schedule = $this->getBarberWeeklySchedule($barber_id);
+            if (!isset($weekly_schedule[$day_of_week]) || $weekly_schedule[$day_of_week]['status'] !== 'available') {
                 return [];
             }
-            
-            $stmt->bind_param("is", $barber_id, $day_of_week);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            if ($result->num_rows === 0) {
-                error_log("No schedule found for barber $barber_id on $day_of_week");
-                return [];
-            }
-            
-            $schedule = $result->fetch_assoc();
-            
-            if ($schedule['status'] === 'unavailable') {
-                error_log("Barber $barber_id is unavailable on $day_of_week");
-                return [];
-            }
-            
-            // Get all services to determine minimum duration
-            $stmt = $this->conn->prepare("SELECT MIN(duration) as min_duration FROM services");
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $min_duration = $result->fetch_assoc()['min_duration'] ?? 30;
-            
-            // Generate time slots
-            $start_time = strtotime($schedule['start_time']);
-            $end_time = strtotime($schedule['end_time']);
-            $interval = 30 * 60; // 30 minutes in seconds
+            $start_time = strtotime($weekly_schedule[$day_of_week]['start_time']);
+            $end_time = strtotime($weekly_schedule[$day_of_week]['end_time']);
+            $interval = 30 * 60; // 30 minutes
             $time_slots = [];
-            
             for ($time = $start_time; $time < $end_time; $time += $interval) {
                 $time_slot = date('H:i:s', $time);
                 if ($this->isBarberAvailable($barber_id, $date, $time_slot)) {
                     $time_slots[] = $time_slot;
                 }
             }
-            
             return $time_slots;
         } catch (Exception $e) {
             error_log("Error getting available time slots: " . $e->getMessage());
@@ -1186,7 +1151,6 @@ class Database {
 
     public function getAvailableDates($barber_id, $start_date = null, $end_date = null) {
         try {
-            // If no dates provided, default to next 30 days
             if (!$start_date) {
                 $start_date = date('Y-m-d');
             }
@@ -1194,39 +1158,21 @@ class Database {
                 $end_date = date('Y-m-d', strtotime('+30 days'));
             }
 
-            // Get barber's weekly schedule
             $weekly_schedule = $this->getBarberWeeklySchedule($barber_id);
-            
-            // Get working hours
-            $working_hours = $this->getWorkingHours();
-            
             $available_dates = [];
             $current_date = new DateTime($start_date);
             $end_datetime = new DateTime($end_date);
-            
+
             while ($current_date <= $end_datetime) {
                 $day_name = strtolower($current_date->format('l'));
                 $date_str = $current_date->format('Y-m-d');
-                
-                // Check if barber has specific schedule for this day
-                if (isset($weekly_schedule[$day_name])) {
-                    if ($weekly_schedule[$day_name]['status'] === 'available') {
-                        $available_dates[] = $date_str;
-                    }
-                } else {
-                    // If no specific schedule, check working hours
-                    $day_of_week = $current_date->format('N');
-                    foreach ($working_hours as $hours) {
-                        if ($hours['day_of_week'] == $day_of_week && $hours['is_working']) {
-                            $available_dates[] = $date_str;
-                            break;
-                        }
-                    }
+
+                // Only include if barber's schedule for this day is 'available'
+                if (isset($weekly_schedule[$day_name]) && $weekly_schedule[$day_name]['status'] === 'available') {
+                    $available_dates[] = $date_str;
                 }
-                
                 $current_date->modify('+1 day');
             }
-            
             return $available_dates;
         } catch (Exception $e) {
             error_log("Error in getAvailableDates: " . $e->getMessage());
