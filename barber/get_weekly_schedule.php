@@ -16,14 +16,16 @@ try {
 
     // Check if user is logged in and is a barber
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'barber') {
-        throw new Exception('Unauthorized access');
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
     }
 
     $db = new Database();
     $barber = $db->getSingleBarber();
 
     if (!$barber) {
-        throw new Exception('Barber not found');
+        echo json_encode(['success' => false, 'message' => 'Barber not found']);
+        exit;
     }
 
     // Get the weekly schedule
