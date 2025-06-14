@@ -11,6 +11,9 @@ class Database {
             if ($this->conn->connect_error) {
                 throw new Exception("Connection failed: " . $this->conn->connect_error);
             }
+            // Ensure settings table and maintenance_mode row exist
+            $this->conn->query("CREATE TABLE IF NOT EXISTS settings (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64) UNIQUE, value VARCHAR(255))");
+            $this->conn->query("INSERT IGNORE INTO settings (name, value) VALUES ('maintenance_mode', 'off')");
         } catch (Exception $e) {
             die("Database connection error: " . $e->getMessage());
         }
@@ -1164,6 +1167,26 @@ class Database {
             error_log("Error in getAvailableDates: " . $e->getMessage());
             return [];
         }
+    }
+
+    public function getMaintenanceMode() {
+        $stmt = $this->conn->prepare("SELECT value FROM settings WHERE name = 'maintenance_mode' LIMIT 1");
+        $stmt->execute();
+        $stmt->bind_result($value);
+        if ($stmt->fetch()) {
+            $stmt->close();
+            return $value;
+        }
+        $stmt->close();
+        return 'off';
+    }
+
+    public function setMaintenanceMode($mode) {
+        $mode = ($mode === 'on') ? 'on' : 'off';
+        $stmt = $this->conn->prepare("UPDATE settings SET value = ? WHERE name = 'maintenance_mode'");
+        $stmt->bind_param("s", $mode);
+        $stmt->execute();
+        $stmt->close();
     }
 }
 ?> 
