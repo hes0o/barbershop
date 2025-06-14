@@ -347,7 +347,7 @@ foreach ($appointments as $appointment) {
                                                 <select class="form-select" name="schedule[<?php echo $dayLower; ?>][start_time]">
                                                     <option value="">--</option>
                                                     <?php
-                                                    for ($h = 8; $h <= 20; $h++) {
+                                                    for ($h = 0; $h <= 23; $h++) {
                                                         $time = sprintf('%02d:00', $h);
                                                         $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
                                                         echo "<option value=\"$time\" $selected>$time</option>";
@@ -359,7 +359,7 @@ foreach ($appointments as $appointment) {
                                                 <select class="form-select" name="schedule[<?php echo $dayLower; ?>][end_time]">
                                                     <option value="">--</option>
                                                     <?php
-                                                    for ($h = 8; $h <= 20; $h++) {
+                                                    for ($h = 0; $h <= 23; $h++) {
                                                         $time = sprintf('%02d:00', $h);
                                                         $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
                                                         echo "<option value=\"$time\" $selected>$time</option>";
