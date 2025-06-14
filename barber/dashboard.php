@@ -36,6 +36,9 @@ $pending_appointments = array_filter($all_appointments, function($apt) {
 // Get weekly schedule
 $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
 
+// Days of the week
+$days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
 // Function to generate time slots
 function generateTimeSlots($start_time, $end_time) {
     $slots = [];
@@ -330,19 +333,19 @@ foreach ($appointments as $appointment) {
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                                    foreach ($days as $day) {
-                                        $dayLower = strtolower($day);
+                                    foreach ($days as $dayLower) {
+                                        $day = ucfirst($dayLower);
                                         $daySchedule = $weekly_schedule[$dayLower] ?? [
-                                            'start_time' => '09:00',
-                                            'end_time' => '17:00',
-                                            'status' => 'available'
+                                            'start_time' => '',
+                                            'end_time' => '',
+                                            'status' => 'unavailable'
                                         ];
                                         ?>
                                         <tr>
                                             <td><?php echo $day; ?></td>
                                             <td>
                                                 <select class="form-select" name="schedule[<?php echo $dayLower; ?>][start_time]">
+                                                    <option value="">--</option>
                                                     <?php
                                                     for ($h = 8; $h <= 20; $h++) {
                                                         $time = sprintf('%02d:00', $h);
@@ -354,6 +357,7 @@ foreach ($appointments as $appointment) {
                                             </td>
                                             <td>
                                                 <select class="form-select" name="schedule[<?php echo $dayLower; ?>][end_time]">
+                                                    <option value="">--</option>
                                                     <?php
                                                     for ($h = 8; $h <= 20; $h++) {
                                                         $time = sprintf('%02d:00', $h);
