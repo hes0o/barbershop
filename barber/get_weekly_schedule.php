@@ -31,17 +31,29 @@ try {
     // Get the weekly schedule
     $schedule = $db->getBarberWeeklySchedule($barber['id']);
 
-    // If no schedule exists, return default values
+    // If no schedule exists, return default values with correct keys
     if (empty($schedule)) {
         $schedule = [
-            'monday' => ['start' => '09:00', 'end' => '17:00', 'status' => 'available'],
-            'tuesday' => ['start' => '09:00', 'end' => '17:00', 'status' => 'available'],
-            'wednesday' => ['start' => '09:00', 'end' => '17:00', 'status' => 'available'],
-            'thursday' => ['start' => '09:00', 'end' => '17:00', 'status' => 'available'],
-            'friday' => ['start' => '09:00', 'end' => '17:00', 'status' => 'available'],
-            'saturday' => ['start' => '09:00', 'end' => '17:00', 'status' => 'available'],
-            'sunday' => ['start' => '09:00', 'end' => '17:00', 'status' => 'unavailable']
+            'monday' => ['start_time' => '09:00', 'end_time' => '17:00', 'status' => 'available'],
+            'tuesday' => ['start_time' => '09:00', 'end_time' => '17:00', 'status' => 'available'],
+            'wednesday' => ['start_time' => '09:00', 'end_time' => '17:00', 'status' => 'available'],
+            'thursday' => ['start_time' => '09:00', 'end_time' => '17:00', 'status' => 'available'],
+            'friday' => ['start_time' => '09:00', 'end_time' => '17:00', 'status' => 'available'],
+            'saturday' => ['start_time' => '09:00', 'end_time' => '17:00', 'status' => 'available'],
+            'sunday' => ['start_time' => '09:00', 'end_time' => '17:00', 'status' => 'unavailable']
         ];
+    } else {
+        // Ensure all keys are 'start_time' and 'end_time' for consistency
+        foreach ($schedule as $day => $info) {
+            if (isset($info['start'])) {
+                $schedule[$day]['start_time'] = $info['start'];
+                unset($schedule[$day]['start']);
+            }
+            if (isset($info['end'])) {
+                $schedule[$day]['end_time'] = $info['end'];
+                unset($schedule[$day]['end']);
+            }
+        }
     }
 
     // Clear any output buffer
