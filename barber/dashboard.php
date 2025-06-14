@@ -532,6 +532,26 @@ foreach ($appointments as $appointment) {
                     const data = await response.json();
 
                     if (data.success) {
+                        // Fetch the updated schedule and update selectors
+                        fetch('get_weekly_schedule.php')
+                            .then(res => res.json())
+                            .then(scheduleData => {
+                                if (scheduleData.success && scheduleData.schedule) {
+                                    const schedule = scheduleData.schedule;
+                                    const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                                    days.forEach(day => {
+                                        const startSel = document.querySelector(`[name='schedule[${day}][start_time]']`);
+                                        const endSel = document.querySelector(`[name='schedule[${day}][end_time]']`);
+                                        const statusSel = document.querySelector(`[name='schedule[${day}][status]']`);
+                                        if (schedule[day]) {
+                                            if (startSel) startSel.value = schedule[day]['start_time'];
+                                            if (endSel) endSel.value = schedule[day]['end_time'];
+                                            if (statusSel) statusSel.value = schedule[day]['status'];
+                                        }
+                                    });
+                                }
+                            });
+
                         // Create success alert
                         const alertDiv = document.createElement('div');
                         alertDiv.className = 'alert alert-success alert-dismissible fade show';
@@ -543,11 +563,8 @@ foreach ($appointments as $appointment) {
                         // Insert at the top of the container
                         const container = document.querySelector('.container-fluid');
                         container.insertBefore(alertDiv, container.firstChild);
-                        
-                        // Reload after 2 seconds
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 2000);
+                    
+                        // No reload! Just update selectors
                     } else {
                         throw new Error(data.message || 'Failed to update schedule');
                     }
