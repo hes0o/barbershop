@@ -196,9 +196,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <input type="email" class="form-control" id="login-email" name="email" placeholder="name@example.com" required>
                         <label for="login-email">Email address</label>
                     </div>
-                    <div class="form-floating mb-3">
+                    <div class="form-floating mb-3 position-relative">
                         <input type="password" class="form-control" id="login-password" name="password" placeholder="Password" required>
                         <label for="login-password">Password</label>
+                        <button type="button" class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:2;" onclick="togglePassword('login-password', this)"><i class="fa fa-eye"></i></button>
                     </div>
                     <button type="submit" class="btn btn-auth">Sign In</button>
                 </form>
@@ -226,13 +227,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         <input type="tel" class="form-control" id="register-phone" name="phone" pattern="[0-9]{10}" placeholder="Phone Number">
                         <label for="register-phone">Phone Number</label>
                     </div>
-                    <div class="form-floating mb-3">
-                        <input type="password" class="form-control" id="register-password" name="password" placeholder="Password" required minlength="6">
+                    <div class="form-floating mb-3 position-relative">
+                        <input type="password" class="form-control" id="register-password" name="password" placeholder="Password" required minlength="6" oninput="checkPasswordStrength(this.value)">
                         <label for="register-password">Password</label>
+                        <button type="button" class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:2;" onclick="togglePassword('register-password', this)"><i class="fa fa-eye"></i></button>
+                        <div id="password-strength" class="mt-2"></div>
                     </div>
-                    <div class="form-floating mb-3">
+                    <div class="form-floating mb-3 position-relative">
                         <input type="password" class="form-control" id="register-confirm-password" name="confirm_password" placeholder="Confirm Password" required>
                         <label for="register-confirm-password">Confirm Password</label>
+                        <button type="button" class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:2;" onclick="togglePassword('register-confirm-password', this)"><i class="fa fa-eye"></i></button>
                     </div>
                     <button type="submit" class="btn btn-auth">Create Account</button>
                 </form>
@@ -251,6 +255,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         function switchToLogin() {
             document.getElementById('loginForm').style.display = 'block';
             document.getElementById('registerForm').style.display = 'none';
+        }
+        function togglePassword(fieldId, btn) {
+            const input = document.getElementById(fieldId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+        function checkPasswordStrength(password) {
+            const strengthDiv = document.getElementById('password-strength');
+            let strength = 0;
+            if (password.length >= 6) strength++;
+            if (password.match(/[A-Z]/)) strength++;
+            if (password.match(/[0-9]/)) strength++;
+            if (password.match(/[^A-Za-z0-9]/)) strength++;
+            let text = '';
+            let color = '';
+            switch (strength) {
+                case 0:
+                case 1:
+                    text = 'Weak'; color = 'text-danger'; break;
+                case 2:
+                    text = 'Medium'; color = 'text-warning'; break;
+                case 3:
+                    text = 'Good'; color = 'text-info'; break;
+                case 4:
+                    text = 'Strong'; color = 'text-success'; break;
+            }
+            if (password.length === 0) {
+                strengthDiv.innerHTML = '';
+            } else {
+                strengthDiv.innerHTML = `<span class="fw-bold ${color}">${text} password</span>`;
+            }
         }
     </script>
 </body>
