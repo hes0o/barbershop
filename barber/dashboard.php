@@ -322,7 +322,12 @@ foreach ($appointments as $appointment) {
             <!-- Weekly Schedule Section -->
             <div class="col-md-6">
                 <div class="schedule-card">
-                    <h4 class="mb-4">Weekly Schedule</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">Weekly Schedule</h4>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshScheduleBtn">
+                            <i class="fas fa-sync-alt"></i> Refresh Schedule
+                        </button>
+                    </div>
                     <form id="weeklyScheduleForm" method="POST">
                         <div class="table-responsive">
                             <table class="table">
@@ -626,6 +631,66 @@ foreach ($appointments as $appointment) {
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalButtonText;
                 }
+            });
+        }
+
+        // Refresh Schedule Button
+        const refreshBtn = document.getElementById('refreshScheduleBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                fetch('get_weekly_schedule.php')
+                    .then(res => res.json())
+                    .then(scheduleData => {
+                        if (scheduleData.success && scheduleData.schedule) {
+                            const schedule = scheduleData.schedule;
+                            const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                            days.forEach(day => {
+                                const startSel = document.querySelector(`[name='schedule[${day}][start_time]']`);
+                                const endSel = document.querySelector(`[name='schedule[${day}][end_time]']`);
+                                const statusSel = document.querySelector(`[name='schedule[${day}][status]']`);
+                                if (schedule[day]) {
+                                    // Set start time
+                                    if (startSel) {
+                                        let val = schedule[day]['start_time'];
+                                        let found = false;
+                                        for (let i = 0; i < startSel.options.length; i++) {
+                                            if (startSel.options[i].value === val) {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!found && val) {
+                                            let opt = document.createElement('option');
+                                            opt.value = val;
+                                            opt.text = val === '00:00' ? '--' : val;
+                                            startSel.appendChild(opt);
+                                        }
+                                        startSel.value = val;
+                                    }
+                                    // Set end time
+                                    if (endSel) {
+                                        let val = schedule[day]['end_time'];
+                                        let found = false;
+                                        for (let i = 0; i < endSel.options.length; i++) {
+                                            if (endSel.options[i].value === val) {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!found && val) {
+                                            let opt = document.createElement('option');
+                                            opt.value = val;
+                                            opt.text = val === '00:00' ? '--' : val;
+                                            endSel.appendChild(opt);
+                                        }
+                                        endSel.value = val;
+                                    }
+                                    // Set status
+                                    if (statusSel) statusSel.value = schedule[day]['status'];
+                                }
+                            });
+                        }
+                    });
             });
         }
     });
