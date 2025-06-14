@@ -15,6 +15,7 @@ $db = new Database();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_maintenance'])) {
     $mode = ($_POST['toggle_maintenance'] === 'on') ? 'on' : 'off';
     $db->setMaintenanceMode($mode);
+    $db->logActivity($_SESSION['user_id'], 'maintenance_mode', "Maintenance mode turned " . ($mode === 'on' ? 'on' : 'off'));
     echo json_encode(['success' => true, 'mode' => $mode]);
     exit;
 }
@@ -59,6 +60,7 @@ $total_services = count($db->getAllServices());
                 <li><a href="users.php" class="nav-link"><i class="fas fa-users"></i> Users</a></li>
                 <li><a href="appointments.php" class="nav-link"><i class="fas fa-calendar-alt"></i> Appointments</a></li>
                 <li><a href="services.php" class="nav-link"><i class="fas fa-scissors"></i> Services</a></li>
+                <li><a href="activity_log.php" class="nav-link"><i class="fas fa-history"></i> Activity Log</a></li>
             </ul>
             <hr>
             <a href="../logout.php" class="btn btn-danger w-100"><i class="fas fa-sign-out-alt"></i> Logout</a>

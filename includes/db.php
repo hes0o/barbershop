@@ -313,6 +313,9 @@ class Database {
             
             $appointment_id = $this->conn->insert_id;
             error_log("Appointment created successfully with ID: " . $appointment_id);
+
+            // Log the activity
+            $this->logActivity($user_id, 'create_appointment', "Created appointment ID: $appointment_id for date: $date, time: $time");
             
             return true;
         } catch (Exception $e) {
@@ -533,6 +536,10 @@ class Database {
             return false;
         }
         error_log("Appointment status updated successfully");
+
+        // Log the activity
+        $this->logActivity($_SESSION['user_id'], 'update_appointment', "Updated appointment ID: $appointment_id status to: $status" . ($notes ? " with notes: $notes" : ""));
+
         return true;
     }
     
@@ -1130,12 +1137,40 @@ class Database {
     }
 
     public function updateUser($id, $username, $email, $phone) {
-        $stmt = $this->conn->prepare("UPDATE users SET username = ?, email = ?, phone = ? WHERE id = ?");
-        if (!$stmt) return false;
-        $stmt->bind_param("sssi", $username, $email, $phone, $id);
-        $result = $stmt->execute();
-        $stmt->close();
-        return $result;
+        try {
+            // Check if email exists for other users
+            $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+            $stmt->bind_param("si", $email, $id);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                return ['success' => false, 'message' => 'Email already exists'];
+            }
+            $stmt->close();
+
+            // Get current user info for logging
+            $stmt = $this->conn->prepare("SELECT username, email, role FROM users WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $old_user = $result->fetch_assoc();
+            $stmt->close();
+
+            // Update user
+            $stmt = $this->conn->prepare("UPDATE users SET username = ?, email = ?, phone = ? WHERE id = ?");
+            $stmt->bind_param("sssi", $username, $email, $phone, $id);
+            $result = $stmt->execute();
+            $stmt->close();
+
+            if ($result) {
+                // Log the activity
+                $this->logActivity($_SESSION['user_id'], 'update_user', "Updated user ID: $id - Old: {$old_user['username']} ({$old_user['email']}), New: $username ($email)");
+                return ['success' => true, 'message' => 'User updated successfully'];
+            }
+            return ['success' => false, 'message' => 'Failed to update user'];
+        } catch (Exception $e) {
+            error_log("Error in updateUser: " . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred'];
+        }
     }
 
     public function getAvailableDates($barber_id, $start_date = null, $end_date = null) {
@@ -1187,6 +1222,296 @@ class Database {
         $stmt->bind_param("s", $mode);
         $stmt->execute();
         $stmt->close();
+    }
+
+    public function logActivity($user_id, $action, $details = null) {
+        try {
+            $stmt = $this->conn->prepare("INSERT INTO activity_log (user_id, action, details) VALUES (?, ?, ?)");
+            if (!$stmt) {
+                error_log("Error preparing logActivity statement: " . $this->conn->error);
+                return false;
+            }
+            $stmt->bind_param("iss", $user_id, $action, $details);
+            $result = $stmt->execute();
+            $stmt->close();
+            return $result;
+        } catch (Exception $e) {
+            error_log("Error in logActivity: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getActivityLog($filters = []) {
+        try {
+            $query = "SELECT al.id, al.user_id, al.action, al.details, al.created_at, u.username 
+                     FROM activity_log al 
+                     JOIN users u ON al.user_id = u.id 
+                     WHERE 1=1";
+            $params = [];
+            $types = "";
+
+            if (!empty($filters['user_id'])) {
+                $query .= " AND al.user_id = ?";
+                $params[] = $filters['user_id'];
+                $types .= "i";
+            }
+
+            if (!empty($filters['action'])) {
+                $query .= " AND al.action = ?";
+                $params[] = $filters['action'];
+                $types .= "s";
+            }
+
+            if (!empty($filters['start_date'])) {
+                $query .= " AND DATE(al.created_at) >= ?";
+                $params[] = $filters['start_date'];
+                $types .= "s";
+            }
+
+            if (!empty($filters['end_date'])) {
+                $query .= " AND DATE(al.created_at) <= ?";
+                $params[] = $filters['end_date'];
+                $types .= "s";
+            }
+
+            $query .= " ORDER BY al.created_at DESC";
+            
+            if (!empty($filters['limit'])) {
+                $query .= " LIMIT ?";
+                $params[] = $filters['limit'];
+                $types .= "i";
+            }
+
+            $stmt = $this->conn->prepare($query);
+            if (!$stmt) {
+                error_log("Error preparing getActivityLog statement: " . $this->conn->error);
+                return [];
+            }
+
+            if (!empty($params)) {
+                $stmt->bind_param($types, ...$params);
+            }
+
+            if (!$stmt->execute()) {
+                error_log("Error executing getActivityLog: " . $stmt->error);
+                return [];
+            }
+
+            $stmt->bind_result($id, $user_id, $action, $details, $created_at, $username);
+            $logs = [];
+            while ($stmt->fetch()) {
+                $logs[] = [
+                    'id' => $id,
+                    'user_id' => $user_id,
+                    'action' => $action,
+                    'details' => $details,
+                    'created_at' => $created_at,
+                    'username' => $username
+                ];
+            }
+            $stmt->close();
+            return $logs;
+        } catch (Exception $e) {
+            error_log("Error in getActivityLog: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function clearActivityLog($days = 30) {
+        try {
+            $stmt = $this->conn->prepare("DELETE FROM activity_log WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)");
+            if (!$stmt) {
+                error_log("Error preparing clearActivityLog statement: " . $this->conn->error);
+                return false;
+            }
+            $stmt->bind_param("i", $days);
+            $result = $stmt->execute();
+            $stmt->close();
+            return $result;
+        } catch (Exception $e) {
+            error_log("Error in clearActivityLog: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getAllUsers() {
+        try {
+            $stmt = $this->conn->prepare("SELECT id, username, email, role, phone, created_at FROM users ORDER BY username ASC");
+            if (!$stmt) {
+                error_log("Error preparing getAllUsers statement: " . $this->conn->error);
+                return [];
+            }
+            if (!$stmt->execute()) {
+                error_log("Error executing getAllUsers: " . $stmt->error);
+                return [];
+            }
+            $stmt->bind_result($id, $username, $email, $role, $phone, $created_at);
+            $users = [];
+            while ($stmt->fetch()) {
+                $users[] = [
+                    'id' => $id,
+                    'username' => $username,
+                    'email' => $email,
+                    'role' => $role,
+                    'phone' => $phone,
+                    'created_at' => $created_at
+                ];
+            }
+            $stmt->close();
+            return $users;
+        } catch (Exception $e) {
+            error_log("Error in getAllUsers: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function addUser($username, $email, $password, $role) {
+        try {
+            // Check if email already exists
+            $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                return ['success' => false, 'message' => 'Email already exists'];
+            }
+            $stmt->close();
+
+            // Hash password
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+            // Insert user
+            $stmt = $this->conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $username, $email, $hashed_password, $role);
+            $result = $stmt->execute();
+            $user_id = $this->conn->insert_id;
+            $stmt->close();
+
+            if ($result) {
+                // Log the activity
+                $this->logActivity($_SESSION['user_id'], 'add_user', "Added new user: $username ($email) with role: $role");
+                return ['success' => true, 'message' => 'User added successfully'];
+            }
+            return ['success' => false, 'message' => 'Failed to add user'];
+        } catch (Exception $e) {
+            error_log("Error in addUser: " . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred'];
+        }
+    }
+
+    public function deleteUser($id) {
+        try {
+            // Get user info before deletion for logging
+            $stmt = $this->conn->prepare("SELECT username, email, role FROM users WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $user = $result->fetch_assoc();
+            $stmt->close();
+
+            // Delete user
+            $stmt = $this->conn->prepare("DELETE FROM users WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $result = $stmt->execute();
+            $stmt->close();
+
+            if ($result) {
+                // Log the activity
+                $this->logActivity($_SESSION['user_id'], 'delete_user', "Deleted user: {$user['username']} ({$user['email']}) with role: {$user['role']}");
+                return ['success' => true, 'message' => 'User deleted successfully'];
+            }
+            return ['success' => false, 'message' => 'Failed to delete user'];
+        } catch (Exception $e) {
+            error_log("Error in deleteUser: " . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred'];
+        }
+    }
+
+    public function addService($name, $description, $price, $duration) {
+        try {
+            $stmt = $this->conn->prepare("INSERT INTO services (name, description, price, duration) VALUES (?, ?, ?, ?)");
+            if (!$stmt) {
+                error_log("Error preparing addService statement: " . $this->conn->error);
+                return ['success' => false, 'message' => 'Database error'];
+            }
+            $stmt->bind_param("ssdi", $name, $description, $price, $duration);
+            $result = $stmt->execute();
+            $service_id = $this->conn->insert_id;
+            $stmt->close();
+
+            if ($result) {
+                // Log the activity
+                $this->logActivity($_SESSION['user_id'], 'add_service', "Added new service: $name ($$price, $duration min)");
+                return ['success' => true, 'message' => 'Service added successfully', 'id' => $service_id];
+            }
+            return ['success' => false, 'message' => 'Failed to add service'];
+        } catch (Exception $e) {
+            error_log("Error in addService: " . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred'];
+        }
+    }
+
+    public function updateService($id, $name, $description, $price, $duration) {
+        try {
+            // Get current service info for logging
+            $stmt = $this->conn->prepare("SELECT name, price, duration FROM services WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $old_service = $result->fetch_assoc();
+            $stmt->close();
+
+            // Update service
+            $stmt = $this->conn->prepare("UPDATE services SET name = ?, description = ?, price = ?, duration = ? WHERE id = ?");
+            if (!$stmt) {
+                error_log("Error preparing updateService statement: " . $this->conn->error);
+                return ['success' => false, 'message' => 'Database error'];
+            }
+            $stmt->bind_param("ssdii", $name, $description, $price, $duration, $id);
+            $result = $stmt->execute();
+            $stmt->close();
+
+            if ($result) {
+                // Log the activity
+                $this->logActivity($_SESSION['user_id'], 'update_service', "Updated service ID: $id - Old: {$old_service['name']} ($${$old_service['price']}, {$old_service['duration']} min), New: $name ($$price, $duration min)");
+                return ['success' => true, 'message' => 'Service updated successfully'];
+            }
+            return ['success' => false, 'message' => 'Failed to update service'];
+        } catch (Exception $e) {
+            error_log("Error in updateService: " . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred'];
+        }
+    }
+
+    public function deleteService($id) {
+        try {
+            // Get service info before deletion for logging
+            $stmt = $this->conn->prepare("SELECT name, price, duration FROM services WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $service = $result->fetch_assoc();
+            $stmt->close();
+
+            // Delete service
+            $stmt = $this->conn->prepare("DELETE FROM services WHERE id = ?");
+            if (!$stmt) {
+                error_log("Error preparing deleteService statement: " . $this->conn->error);
+                return ['success' => false, 'message' => 'Database error'];
+            }
+            $stmt->bind_param("i", $id);
+            $result = $stmt->execute();
+            $stmt->close();
+
+            if ($result) {
+                // Log the activity
+                $this->logActivity($_SESSION['user_id'], 'delete_service', "Deleted service: {$service['name']} ($${$service['price']}, {$service['duration']} min)");
+                return ['success' => true, 'message' => 'Service deleted successfully'];
+            }
+            return ['success' => false, 'message' => 'Failed to delete service'];
+        } catch (Exception $e) {
+            error_log("Error in deleteService: " . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred'];
+        }
     }
 }
 ?> 
