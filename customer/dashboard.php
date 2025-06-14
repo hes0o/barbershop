@@ -210,12 +210,16 @@ function getStatusColor($status) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>/css/style.css" rel="stylesheet">
     <style>
+        body {
+            background: linear-gradient(120deg, #f8fafc 0%, #e0e7ff 100%);
+            min-height: 100vh;
+        }
         .sign-out-btn {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 1000;
-            background-color: var(--danger);
+            background-color: #e74c3c;
             color: white;
             padding: 8px 15px;
             border-radius: 8px;
@@ -224,13 +228,13 @@ function getStatusColor($status) {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .sign-out-btn:hover {
-            background-color: var(--danger-hover);
+            background-color: #c0392b;
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
         .welcome-card {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, #4f8cff, #6ee7b7);
             border: none;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -240,7 +244,7 @@ function getStatusColor($status) {
             transform: translateY(-5px);
         }
         .booking-section {
-            background-color: var(--white);
+            background: linear-gradient(120deg, #fff 60%, #e0e7ff 100%);
             border-radius: 15px;
             padding: 2rem;
             margin-bottom: 2rem;
@@ -256,7 +260,6 @@ function getStatusColor($status) {
         .service-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-            border-color: var(--accent-color);
         }
         .service-card.selected {
             border-color: var(--accent-color);
@@ -290,14 +293,20 @@ function getStatusColor($status) {
         .appointment-card {
             border: none;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
             transition: all 0.3s;
-            background: var(--white);
+            background: linear-gradient(120deg, #f0f9ff 60%, #e0e7ff 100%);
             margin-bottom: 1.5rem;
+            position: relative;
+            border-left: 8px solid #4f8cff;
         }
+        .appointment-card.status-warning { border-left-color: #f1c40f; background: linear-gradient(120deg, #fffbe6 60%, #f9e79f 100%); }
+        .appointment-card.status-success { border-left-color: #27ae60; background: linear-gradient(120deg, #e8fff3 60%, #b9f6ca 100%); }
+        .appointment-card.status-info { border-left-color: #2980b9; background: linear-gradient(120deg, #e3f6fd 60%, #b2ebf2 100%); }
+        .appointment-card.status-danger { border-left-color: #e74c3c; background: linear-gradient(120deg, #ffeaea 60%, #ffb3b3 100%); }
         .appointment-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.13);
         }
         .status-badge {
             position: absolute;
@@ -316,11 +325,12 @@ function getStatusColor($status) {
             margin-top: 2rem;
         }
         .section-title {
-            color: var(--primary-color);
-            font-weight: 600;
+            color: #4f8cff;
+            font-weight: 700;
             margin-bottom: 1.5rem;
             padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--gray-200);
+            border-bottom: 2px solid #e0e7ff;
+            letter-spacing: 1px;
         }
         .step-title {
             color: var(--secondary-color);
@@ -328,22 +338,22 @@ function getStatusColor($status) {
             margin-bottom: 1rem;
         }
         .book-button {
-            background: var(--accent-color);
-            color: var(--white);
+            background: #4f8cff;
+            color: #fff;
             padding: 0.75rem 2rem;
             border-radius: 8px;
             border: none;
             font-weight: 500;
             transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+            box-shadow: 0 4px 15px rgba(79, 140, 255, 0.2);
         }
         .book-button:hover:not(:disabled) {
-            background: var(--accent-hover);
+            background: #2563eb;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+            box-shadow: 0 6px 20px rgba(79, 140, 255, 0.3);
         }
         .book-button:disabled {
-            background: var(--gray-400);
+            background: #b6c6e3;
             cursor: not-allowed;
         }
     </style>
@@ -399,7 +409,7 @@ function getStatusColor($status) {
                     <div class="row">
                         <?php foreach ($appointments as $appointment): ?>
                             <div class="col-md-6 mb-3">
-                                <div class="card appointment-card">
+                                <div class="card appointment-card status-<?php echo getStatusColor($appointment['status']); ?>">
                                     <div class="card-body p-4">
                                         <span class="badge bg-<?php echo getStatusColor($appointment['status']); ?> status-badge">
                                             <?php echo ucfirst($appointment['status']); ?>
