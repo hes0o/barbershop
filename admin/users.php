@@ -265,7 +265,7 @@ $role_stmt->close();
                                     </td>
                                     <td><?php echo $user['total_appointments']; ?></td>
                                     <td><?php echo $user['last_visit'] ? date('M j, Y', strtotime($user['last_visit'])) : 'Never'; ?></td>
-                                    <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
+                                    <td><?php echo isset($user['created_at']) && $user['created_at'] ? date('M j, Y', strtotime($user['created_at'])) : '-'; ?></td>
                                     <td class="action-buttons">
                                         <button class="btn btn-sm btn-secondary" onclick="showUserInfo(<?php echo htmlspecialchars(json_encode($user)); ?>)">
                                             <i class="fas fa-info-circle"></i>

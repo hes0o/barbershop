@@ -13,6 +13,11 @@ $db = new Database();
 $message = '';
 $error = '';
 
+if (isset($_SESSION['profile_update_success'])) {
+    $message = 'Profile updated successfully';
+    unset($_SESSION['profile_update_success']);
+}
+
 // Get customer info
 $customer = $db->getUserById($_SESSION['user_id']);
 
@@ -42,8 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
                 $stmt->bind_param("ssssi", $first_name, $last_name, $email, $phone, $_SESSION['user_id']);
                 if ($stmt->execute()) {
-                    $message = 'Profile updated successfully';
-                    $customer = $db->getUserById($_SESSION['user_id']); // Refresh customer data
+                    $_SESSION['profile_update_success'] = true;
+                    header('Location: profile.php');
+                    exit;
                 } else {
                     $error = 'Failed to update profile';
                 }
