@@ -601,43 +601,35 @@ class Database {
         try {
             // Get the day of the week
             $day_of_week = strtolower(date('l', strtotime($date)));
-            
             // Check if the barber has a schedule for this day
             $stmt = $this->conn->prepare("
                 SELECT start_time, end_time, status
                 FROM barber_schedule
                 WHERE barber_id = ? AND day_of_week = ?
             ");
-            
             if ($stmt === false) {
                 error_log("Error preparing barber schedule query: " . $this->conn->error);
                 return false;
             }
-            
             $stmt->bind_param("is", $barber_id, $day_of_week);
             $stmt->execute();
-            $result = $stmt->get_result();
-            
-            if ($result->num_rows === 0) {
+            $stmt->store_result();
+            if ($stmt->num_rows === 0) {
                 error_log("No schedule found for barber $barber_id on $day_of_week");
+                $stmt->close();
                 return false;
             }
-            
-            $schedule = $result->fetch_assoc();
+            $stmt->bind_result($start_time, $end_time, $status);
+            $stmt->fetch();
             $stmt->close();
-            
-            // Check if the barber is marked as unavailable
-            if ($schedule['status'] === 'unavailable') {
+            if ($status === 'unavailable') {
                 error_log("Barber $barber_id is marked as unavailable on $day_of_week");
                 return false;
             }
-            
-            // Check if the requested time is within working hours
-            if ($time < $schedule['start_time'] || $time > $schedule['end_time']) {
-                error_log("Time $time is outside working hours ({$schedule['start_time']} - {$schedule['end_time']})");
+            if ($time < $start_time || $time > $end_time) {
+                error_log("Time $time is outside working hours ({$start_time} - {$end_time})");
                 return false;
             }
-            
             // Check for existing appointments
             $stmt = $this->conn->prepare("
                 SELECT a.appointment_time, s.duration
@@ -651,22 +643,16 @@ class Database {
                     OR (a.appointment_time < DATE_ADD(?, INTERVAL s.duration MINUTE) AND a.appointment_time >= ?)
                 )
             ");
-            
             if ($stmt === false) {
                 error_log("Error preparing appointment check query: " . $this->conn->error);
                 return false;
             }
-            
             $stmt->bind_param("isssss", $barber_id, $date, $time, $time, $time, $time);
             $stmt->execute();
-            $result = $stmt->get_result();
-            
-            if ($result->num_rows > 0) {
-                error_log("Time slot $time is already booked");
-                return false;
-            }
-            
-            return true;
+            $stmt->store_result();
+            $has_overlap = $stmt->num_rows > 0;
+            $stmt->close();
+            return !$has_overlap;
         } catch (Exception $e) {
             error_log("Error checking barber availability: " . $e->getMessage());
             return false;
