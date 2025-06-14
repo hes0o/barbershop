@@ -3,9 +3,17 @@ session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 
+header('Content-Type: application/json');
+
 // Check if user is logged in and is a customer
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+    echo json_encode(['error' => 'Unauthorized']);
+    exit;
+}
+
+$day = isset($_GET['day']) ? strtolower($_GET['day']) : '';
+if (empty($day)) {
+    echo json_encode([]);
     exit;
 }
 
@@ -14,40 +22,23 @@ $db = new Database();
 // Get the active barber
 $barber = $db->getSingleBarber();
 if (!$barber) {
-    echo json_encode(['success' => false, 'message' => 'No barber available']);
+    echo json_encode([]);
     exit;
 }
 
-// Get barber's weekly schedule
-$weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
+$today = new DateTime();
+$dates_found = 0;
+$max_dates = 4;
+$available_dates = [];
+$current = clone $today;
 
-// Get available dates for the next 14 days
-$dates = [];
-$currentDate = new DateTime();
-$endDate = (new DateTime())->modify('+14 days');
-
-while ($currentDate <= $endDate) {
-    // Skip past dates
-    if ($currentDate < new DateTime('today')) {
-        $currentDate->modify('+1 day');
-        continue;
+while ($dates_found < $max_dates) {
+    if (strtolower($current->format('l')) === $day) {
+        $date_str = $current->format('Y-m-d');
+        $available_dates[] = $date_str;
+        $dates_found++;
     }
-
-    $date_str = $currentDate->format('Y-m-d');
-    $day_of_week = strtolower($currentDate->format('l')); // Get day name in lowercase
-
-    // Check if the barber is available on this day according to their weekly schedule
-    if (isset($weekly_schedule[$day_of_week]) && $weekly_schedule[$day_of_week]['status'] === 'available') {
-        $dates[] = [
-            'date' => $date_str,
-            'day_name' => $currentDate->format('l')
-        ];
-    }
-
-    $currentDate->modify('+1 day');
+    $current->modify('+1 day');
 }
 
-echo json_encode([
-    'success' => true,
-    'dates' => $dates
-]); 
+echo json_encode($available_dates); 

@@ -491,11 +491,11 @@ if ($barber && $selected_date) {
             <div class="card shadow-lg border-0">
                 <div class="card-body p-4">
                     <h3 class="section-title mb-4"><i class="fas fa-calendar-plus text-primary me-2"></i>Book an Appointment</h3>
-                    <form id="bookingForm" class="row g-4" method="GET" action="">
+                    <form id="bookingForm" class="row g-4" method="POST" action="book_appointment.php">
                         <!-- Day-of-Week Selector -->
                         <div class="col-md-4">
                             <label for="bookingDay" class="form-label">Select Day</label>
-                            <select class="form-select" id="bookingDay" name="day" required onchange="this.form.submit()">
+                            <select class="form-select" id="bookingDay" name="day" required>
                                 <?php foreach ($available_days as $day): ?>
                                     <option value="<?php echo $day; ?>" <?php echo ($selected_day === $day) ? 'selected' : ''; ?>><?php echo ucfirst($day); ?></option>
                                 <?php endforeach; ?>
@@ -504,7 +504,7 @@ if ($barber && $selected_date) {
                         <!-- Date Selector -->
                         <div class="col-md-4">
                             <label for="bookingDate" class="form-label">Select Date</label>
-                            <select class="form-select" id="bookingDate" name="date" required onchange="this.form.submit()">
+                            <select class="form-select" id="bookingDate" name="date" required>
                                 <?php foreach ($available_dates as $date): ?>
                                     <option value="<?php echo $date; ?>" <?php echo ($selected_date === $date) ? 'selected' : ''; ?>><?php echo date('D, M j, Y', strtotime($date)); ?></option>
                                 <?php endforeach; ?>
@@ -575,6 +575,93 @@ if ($barber && $selected_date) {
             });
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const bookingForm = document.getElementById('bookingForm');
+        const bookingDay = document.getElementById('bookingDay');
+        const bookingDate = document.getElementById('bookingDate');
+        const bookingTime = document.getElementById('bookingTime');
+        const bookingResult = document.getElementById('bookingResult');
+
+        // Update dates when day changes
+        bookingDay.addEventListener('change', function() {
+            updateDates(this.value);
+        });
+
+        // Update times when date changes
+        bookingDate.addEventListener('change', function() {
+            updateTimes(this.value);
+        });
+
+        // Handle form submission
+        bookingForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('book_appointment.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bookingResult.innerHTML = '<div class="alert alert-success">Appointment booked successfully!</div>';
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    bookingResult.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                bookingResult.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
+            });
+        });
+
+        function updateDates(day) {
+            fetch('get_available_dates.php?day=' + day)
+                .then(response => response.json())
+                .then(data => {
+                    bookingDate.innerHTML = '';
+                    data.forEach(date => {
+                        const option = document.createElement('option');
+                        option.value = date;
+                        option.textContent = new Date(date).toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                        });
+                        bookingDate.appendChild(option);
+                    });
+                    if (data.length > 0) {
+                        updateTimes(data[0]);
+                    }
+                });
+        }
+
+        function updateTimes(date) {
+            fetch('get_available_times.php?date=' + date)
+                .then(response => response.json())
+                .then(data => {
+                    bookingTime.innerHTML = '<option value="">Choose a time</option>';
+                    if (data.length === 0) {
+                        bookingTime.innerHTML = '<option value="">No available times</option>';
+                        bookingTime.disabled = true;
+                    } else {
+                        bookingTime.disabled = false;
+                        data.forEach(time => {
+                            const option = document.createElement('option');
+                            option.value = time;
+                            option.textContent = new Date('2000-01-01 ' + time).toLocaleTimeString('en-US', { 
+                                hour: 'numeric', 
+                                minute: '2-digit', 
+                                hour12: true 
+                            });
+                            bookingTime.appendChild(option);
+                        });
+                    }
+                });
+        }
+    });
     </script>
 </body>
 </html> 
