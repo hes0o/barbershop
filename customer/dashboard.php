@@ -21,7 +21,7 @@ error_log('Dashboard: user_id in session: ' . (isset($_SESSION['user_id']) ? $_S
 error_log('Dashboard: SESSION = ' . print_r($_SESSION, true));
 
 // Prepare the SQL and log it
-$sql = "SELECT u.*, COUNT(a.id) as total_appointments, MAX(a.appointment_date) as last_visit FROM users u LEFT JOIN appointments a ON u.id = a.user_id WHERE u.id = ? GROUP BY u.id";
+$sql = "SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.role, u.phone, u.created_at, COUNT(a.id) as total_appointments, MAX(a.appointment_date) as last_visit FROM users u LEFT JOIN appointments a ON u.id = a.user_id WHERE u.id = ? GROUP BY u.id";
 error_log('Dashboard: SQL = ' . $sql . ' [user_id=' . ($_SESSION['user_id'] ?? 'not set') . ']');
 
 $stmt = $db->getConnection()->prepare($sql);
@@ -40,14 +40,15 @@ if ($stmt->error) {
 
 // Bind the result variables
 $stmt->bind_result(
-    $id, $username, $email, $password, $role, $phone, $created_at, $total_appointments, $last_visit
+    $id, $first_name, $last_name, $email, $password, $role, $phone, $created_at, $total_appointments, $last_visit
 );
 
 // Fetch the result
 if ($stmt->fetch()) {
     $customer = [
         'id' => $id,
-        'username' => $username,
+        'first_name' => $first_name,
+        'last_name' => $last_name,
         'email' => $email,
         'role' => $role,
         'phone' => $phone,
@@ -423,7 +424,7 @@ if ($barber && $selected_date) {
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h2 class="card-title text-white mb-2">Welcome, <?php echo htmlspecialchars($customer['username']); ?>!</h2>
+                                <h2 class="card-title text-white mb-2">Welcome, <?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?>!</h2>
                                 <p class="card-text text-white-50">Book your next appointment or manage your existing ones.</p>
                             </div>
                             <a href="profile.php" class="btn btn-light">

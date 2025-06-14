@@ -107,18 +107,17 @@ $stmt->store_result();
 $stmt->bind_result($id, $first_name, $last_name, $email, $password, $role, $phone, $created_at, $total_appointments, $last_activity);
 $users = [];
 while ($stmt->fetch()) {
-    $users[] = [
+    $customer = [
         'id' => $id,
         'first_name' => $first_name,
         'last_name' => $last_name,
         'email' => $email,
-        'password' => $password,
         'role' => $role,
         'phone' => $phone,
-        'created_at' => $created_at,
         'total_appointments' => $total_appointments,
-        'last_activity' => $last_activity
+        'last_visit' => $last_activity
     ];
+    $users[] = $customer;
 }
 $stmt->close();
 
@@ -265,7 +264,7 @@ $role_stmt->close();
                                         </span>
                                     </td>
                                     <td><?php echo $user['total_appointments']; ?></td>
-                                    <td><?php echo $user['last_activity'] ? date('M j, Y', strtotime($user['last_activity'])) : 'Never'; ?></td>
+                                    <td><?php echo $user['last_visit'] ? date('M j, Y', strtotime($user['last_visit'])) : 'Never'; ?></td>
                                     <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
                                     <td class="action-buttons">
                                         <button class="btn btn-sm btn-secondary" onclick="showUserInfo(<?php echo htmlspecialchars(json_encode($user)); ?>)">
@@ -410,7 +409,7 @@ $role_stmt->close();
 
         function editUser(user) {
             document.getElementById('editUserId').value = user.id;
-            document.getElementById('editUsername').value = user.username;
+            document.getElementById('editUsername').value = user.first_name;
             document.getElementById('editEmail').value = user.email;
             document.getElementById('editRole').value = user.role;
             new bootstrap.Modal(document.getElementById('editUserModal')).show();
