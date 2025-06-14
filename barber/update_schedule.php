@@ -85,7 +85,17 @@ try {
             throw new Exception("Missing required fields for $day");
         }
 
-        // Validate time format
+        // If unavailable, set times to 00:00 and skip time format validation
+        if ($dayData['status'] === 'unavailable') {
+            $schedule[$day] = [
+                'start_time' => '00:00',
+                'end_time' => '00:00',
+                'status' => 'unavailable'
+            ];
+            continue;
+        }
+
+        // Validate time format for available days only
         if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $dayData['start_time']) || 
             !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $dayData['end_time'])) {
             throw new Exception("Invalid time format for $day");
