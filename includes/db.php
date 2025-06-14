@@ -953,7 +953,7 @@ class Database {
             }
             $start_time = strtotime($weekly_schedule[$day_of_week]['start_time']);
             $end_time = strtotime($weekly_schedule[$day_of_week]['end_time']);
-            $interval = 30 * 60; // 30 minutes
+            $interval = 60 * 60; // 1 hour intervals
             $time_slots = [];
             for ($time = $start_time; $time < $end_time; $time += $interval) {
                 $time_slot = date('H:i:s', $time);
@@ -963,7 +963,7 @@ class Database {
             }
             return $time_slots;
         } catch (Exception $e) {
-            error_log("Error getting available time slots: " . $e->getMessage());
+            error_log("Error in getAvailableTimeSlots: " . $e->getMessage());
             return [];
         }
     }
