@@ -1,271 +1,93 @@
 <?php
 session_start();
-require_once '../config.php';
-require_once '../includes/db.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/db.php';
 
-// Check if user is logged in and is an admin
+// Only allow admin users
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: ../login.php');
+    header('Location: ' . BASE_URL . '/login.php');
     exit;
 }
 
 $db = new Database();
-$message = '';
-$error = '';
 
-// Handle service updates
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        switch ($_POST['action']) {
-            case 'update_service':
-                $service_id = $_POST['service_id'];
-                $name = $_POST['name'];
-                $description = $_POST['description'];
-                $price = $_POST['price'];
-                $duration = $_POST['duration'];
-                
-                $stmt = $db->conn->prepare("UPDATE services SET name = ?, description = ?, price = ?, duration = ? WHERE id = ?");
-                $stmt->bind_param("ssdii", $name, $description, $price, $duration, $service_id);
-                
-                if ($stmt->execute()) {
-                    $message = "Service updated successfully!";
-                } else {
-                    $error = "Failed to update service.";
-                }
-                break;
-                
-            case 'delete_service':
-                $service_id = $_POST['service_id'];
-                
-                $stmt = $db->conn->prepare("DELETE FROM services WHERE id = ?");
-                $stmt->bind_param("i", $service_id);
-                
-                if ($stmt->execute()) {
-                    $message = "Service deleted successfully!";
-                } else {
-                    $error = "Failed to delete service.";
-                }
-                break;
-                
-            case 'add_service':
-                $name = $_POST['name'];
-                $description = $_POST['description'];
-                $price = $_POST['price'];
-                $duration = $_POST['duration'];
-                
-                $stmt = $db->conn->prepare("INSERT INTO services (name, description, price, duration) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("ssdi", $name, $description, $price, $duration);
-                
-                if ($stmt->execute()) {
-                    $message = "Service added successfully!";
-                } else {
-                    $error = "Failed to add service.";
-                }
-                break;
-        }
-    }
-}
+// Quick stats
+$total_users = count($db->getAllCustomers());
+$total_barbers = count($db->getAllBarbers());
+$total_appointments = $db->getConnection()->query('SELECT COUNT(*) FROM appointments')->fetch_row()[0];
+$total_services = count($db->getAllServices());
 
-// Get all services
-$services = $db->getAllServices();
 ?>
-
-<?php include '../includes/header.php'; ?>
-
-<div class="container py-5">
-    <div class="row">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f8fafc; font-family: 'Poppins', sans-serif; }
+        .sidebar { min-height: 100vh; background: #22223b; color: #fff; }
+        .sidebar .nav-link { color: #fff; }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover { background: #4f8cff; color: #fff; }
+        .sidebar .nav-link i { margin-right: 8px; }
+        .main-content { margin-left: 220px; padding: 2rem; }
+        .stat-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 1.5rem; text-align: center; }
+        .stat-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 2rem; font-weight: bold; }
+        .stat-label { color: #6c757d; font-size: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
         <!-- Sidebar -->
-        <div class="col-md-3">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Admin Menu</h5>
-                    <div class="list-group">
-                        <a href="dashboard.php" class="list-group-item list-group-item-action active">
-                            <i class="fas fa-concierge-bell me-2"></i>Services
-                        </a>
-                        <a href="appointments.php" class="list-group-item list-group-item-action">
-                            <i class="fas fa-calendar-alt me-2"></i>Appointments
-                        </a>
-                        <a href="barbers.php" class="list-group-item list-group-item-action">
-                            <i class="fas fa-user-tie me-2"></i>Barbers
-                        </a>
-                        <a href="settings.php" class="list-group-item list-group-item-action">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
+        <nav class="sidebar d-flex flex-column p-3" style="width:220px;">
+            <h3 class="mb-4"><i class="fas fa-crown"></i> Admin</h3>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item"><a href="dashboard.php" class="nav-link active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                <li><a href="users.php" class="nav-link"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="appointments.php" class="nav-link"><i class="fas fa-calendar-alt"></i> Appointments</a></li>
+                <li><a href="services.php" class="nav-link"><i class="fas fa-scissors"></i> Services</a></li>
+            </ul>
+            <hr>
+            <a href="../logout.php" class="btn btn-danger w-100"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
         <!-- Main Content -->
-        <div class="col-md-9">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2 class="card-title mb-0">Manage Services</h2>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServiceModal">
-                            <i class="fas fa-plus me-2"></i>Add New Service
-                        </button>
+        <div class="main-content flex-grow-1">
+            <h2 class="mb-4">Dashboard Overview</h2>
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon text-primary"><i class="fas fa-users"></i></div>
+                        <div class="stat-value"><?php echo $total_users; ?></div>
+                        <div class="stat-label">Customers</div>
                     </div>
-                    
-                    <?php if ($message): ?>
-                        <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
-                    <?php endif; ?>
-                    
-                    <?php if ($error): ?>
-                        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-                    <?php endif; ?>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Description</th>
-                                    <th>Price</th>
-                                    <th>Duration</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($services as $service): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($service['name']); ?></td>
-                                        <td><?php echo htmlspecialchars($service['description']); ?></td>
-                                        <td>$<?php echo number_format($service['price'], 2); ?></td>
-                                        <td><?php echo $service['duration']; ?> min</td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-primary" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#editServiceModal<?php echo $service['id']; ?>">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-danger" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteServiceModal<?php echo $service['id']; ?>">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    
-                                    <!-- Edit Service Modal -->
-                                    <div class="modal fade" id="editServiceModal<?php echo $service['id']; ?>" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST">
-                                                    <input type="hidden" name="action" value="update_service">
-                                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                                    
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Edit Service</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    
-                                                    <div class="modal-body">
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Name</label>
-                                                            <input type="text" class="form-control" name="name" 
-                                                                   value="<?php echo htmlspecialchars($service['name']); ?>" required>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Description</label>
-                                                            <textarea class="form-control" name="description" rows="3" required><?php echo htmlspecialchars($service['description']); ?></textarea>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Price ($)</label>
-                                                            <input type="number" class="form-control" name="price" 
-                                                                   value="<?php echo $service['price']; ?>" step="0.01" required>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Duration (minutes)</label>
-                                                            <input type="number" class="form-control" name="duration" 
-                                                                   value="<?php echo $service['duration']; ?>" required>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Delete Service Modal -->
-                                    <div class="modal fade" id="deleteServiceModal<?php echo $service['id']; ?>" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST">
-                                                    <input type="hidden" name="action" value="delete_service">
-                                                    <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
-                                                    
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Delete Service</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    
-                                                    <div class="modal-body">
-                                                        <p>Are you sure you want to delete this service?</p>
-                                                        <p><strong><?php echo htmlspecialchars($service['name']); ?></strong></p>
-                                                    </div>
-                                                    
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-danger">Delete</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon text-success"><i class="fas fa-user-tie"></i></div>
+                        <div class="stat-value"><?php echo $total_barbers; ?></div>
+                        <div class="stat-label">Barbers</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon text-info"><i class="fas fa-calendar-alt"></i></div>
+                        <div class="stat-value"><?php echo $total_appointments; ?></div>
+                        <div class="stat-label">Appointments</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-icon text-warning"><i class="fas fa-scissors"></i></div>
+                        <div class="stat-value"><?php echo $total_services; ?></div>
+                        <div class="stat-label">Services</div>
                     </div>
                 </div>
             </div>
+            <div class="alert alert-info">Welcome to the admin dashboard! Use the sidebar to manage users, barbers, appointments, and services.</div>
         </div>
     </div>
-</div>
-
-<!-- Add Service Modal -->
-<div class="modal fade" id="addServiceModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST">
-                <input type="hidden" name="action" value="add_service">
-                
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Service</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" class="form-control" name="name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="3" required></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Price ($)</label>
-                        <input type="number" class="form-control" name="price" step="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Duration (minutes)</label>
-                        <input type="number" class="form-control" name="duration" required>
-                    </div>
-                </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Service</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<?php include '../includes/footer.php'; ?> 
+</body>
+</html> 
