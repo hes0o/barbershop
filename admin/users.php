@@ -155,132 +155,137 @@ $role_stmt->close();
     </style>
 </head>
 <body>
-    <div class="d-flex">
-        <!-- Sidebar -->
-        <nav class="sidebar d-flex flex-column p-3" style="width:220px;">
-            <h3 class="mb-4"><i class="fas fa-crown"></i> Admin</h3>
-            <ul class="nav nav-pills flex-column mb-auto">
-                <li><a href="dashboard.php" class="nav-link"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                <li class="nav-item"><a href="users.php" class="nav-link active"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="appointments.php" class="nav-link"><i class="fas fa-calendar-alt"></i> Appointments</a></li>
-                <li><a href="services.php" class="nav-link"><i class="fas fa-scissors"></i> Services</a></li>
-                <li><a href="activity_log.php" class="nav-link"><i class="fas fa-history"></i> Activity Log</a></li>
-            </ul>
-            <hr>
-            <a href="../logout.php" class="btn btn-danger w-100"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </nav>
-        <!-- Main Content -->
-        <div class="main-content flex-grow-1">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Users Management</h2>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                    <i class="fas fa-plus"></i> Add New User
-                </button>
-            </div>
-
-            <?php if ($message): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <?php echo $message; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="container-fluid">
+        <div class="text-center mb-4">
+            <span class="logo" style="font-size:3rem;font-weight:700;color:#3498db;">BladeX</span>
+        </div>
+        <div class="d-flex">
+            <!-- Sidebar -->
+            <nav class="sidebar d-flex flex-column p-3" style="width:220px;">
+                <h3 class="mb-4"><i class="fas fa-crown"></i> Admin</h3>
+                <ul class="nav nav-pills flex-column mb-auto">
+                    <li><a href="dashboard.php" class="nav-link"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                    <li class="nav-item"><a href="users.php" class="nav-link active"><i class="fas fa-users"></i> Users</a></li>
+                    <li><a href="appointments.php" class="nav-link"><i class="fas fa-calendar-alt"></i> Appointments</a></li>
+                    <li><a href="services.php" class="nav-link"><i class="fas fa-scissors"></i> Services</a></li>
+                    <li><a href="activity_log.php" class="nav-link"><i class="fas fa-history"></i> Activity Log</a></li>
+                </ul>
+                <hr>
+                <a href="../logout.php" class="btn btn-danger w-100"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+            <!-- Main Content -->
+            <div class="main-content flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Users Management</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                        <i class="fas fa-plus"></i> Add New User
+                    </button>
                 </div>
-            <?php endif; ?>
 
-            <?php if ($error): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?php echo $error; ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <?php if ($message): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <?php echo $message; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($error): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?php echo $error; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Filters -->
+                <div class="filter-section">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" name="search" placeholder="Search users..." value="<?php echo htmlspecialchars($search); ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" name="role">
+                                <option value="">All Roles</option>
+                                <?php foreach ($roles as $role): ?>
+                                    <option value="<?php echo $role['role']; ?>" <?php echo $role_filter === $role['role'] ? 'selected' : ''; ?>>
+                                        <?php echo ucfirst($role['role']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" name="sort">
+                                <option value="id" <?php echo $sort_by === 'id' ? 'selected' : ''; ?>>Sort by ID</option>
+                                <option value="username" <?php echo $sort_by === 'username' ? 'selected' : ''; ?>>Sort by Username</option>
+                                <option value="email" <?php echo $sort_by === 'email' ? 'selected' : ''; ?>>Sort by Email</option>
+                                <option value="role" <?php echo $sort_by === 'role' ? 'selected' : ''; ?>>Sort by Role</option>
+                                <option value="created_at" <?php echo $sort_by === 'created_at' ? 'selected' : ''; ?>>Sort by Created Date</option>
+                                <option value="total_appointments" <?php echo $sort_by === 'total_appointments' ? 'selected' : ''; ?>>Sort by Appointments</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                        </div>
+                    </form>
                 </div>
-            <?php endif; ?>
 
-            <!-- Filters -->
-            <div class="filter-section">
-                <form method="GET" class="row g-3">
-                    <div class="col-md-4">
-                        <input type="text" class="form-control" name="search" placeholder="Search users..." value="<?php echo htmlspecialchars($search); ?>">
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" name="role">
-                            <option value="">All Roles</option>
-                            <?php foreach ($roles as $role): ?>
-                                <option value="<?php echo $role['role']; ?>" <?php echo $role_filter === $role['role'] ? 'selected' : ''; ?>>
-                                    <?php echo ucfirst($role['role']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" name="sort">
-                            <option value="id" <?php echo $sort_by === 'id' ? 'selected' : ''; ?>>Sort by ID</option>
-                            <option value="username" <?php echo $sort_by === 'username' ? 'selected' : ''; ?>>Sort by Username</option>
-                            <option value="email" <?php echo $sort_by === 'email' ? 'selected' : ''; ?>>Sort by Email</option>
-                            <option value="role" <?php echo $sort_by === 'role' ? 'selected' : ''; ?>>Sort by Role</option>
-                            <option value="created_at" <?php echo $sort_by === 'created_at' ? 'selected' : ''; ?>>Sort by Created Date</option>
-                            <option value="total_appointments" <?php echo $sort_by === 'total_appointments' ? 'selected' : ''; ?>>Sort by Appointments</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Users Table -->
-            <div class="table-responsive">
-                <table class="table table-striped" id="usersTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>User</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Appointments</th>
-                            <th>Last Activity</th>
-                            <th>Created</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($users as $user): ?>
+                <!-- Users Table -->
+                <div class="table-responsive">
+                    <table class="table table-striped" id="usersTable">
+                        <thead>
                             <tr>
-                                <td><?php echo $user['id']; ?></td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="user-avatar me-2">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
-                                    </div>
-                                </td>
-                                <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                <td>
-                                    <span class="badge bg-<?php 
-                                        echo $user['role'] === 'admin' ? 'danger' : 
-                                            ($user['role'] === 'barber' ? 'success' : 'primary'); 
-                                    ?>">
-                                        <?php echo ucfirst($user['role']); ?>
-                                    </span>
-                                </td>
-                                <td><?php echo $user['total_appointments']; ?></td>
-                                <td><?php echo $user['last_activity'] ? date('M j, Y', strtotime($user['last_activity'])) : 'Never'; ?></td>
-                                <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
-                                <td class="action-buttons">
-                                    <button class="btn btn-sm btn-secondary" onclick="showUserInfo(<?php echo htmlspecialchars(json_encode($user)); ?>)">
-                                        <i class="fas fa-info-circle"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-info" onclick="impersonateUser(<?php echo $user['id']; ?>)">
-                                        <i class="fas fa-user-secret"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-primary" onclick="editUser(<?php echo htmlspecialchars(json_encode($user)); ?>)">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id']; ?>)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Appointments</th>
+                                <th>Last Activity</th>
+                                <th>Created</th>
+                                <th>Actions</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($users as $user): ?>
+                                <tr>
+                                    <td><?php echo $user['id']; ?></td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="user-avatar me-2">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>
+                                        </div>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                    <td>
+                                        <span class="badge bg-<?php 
+                                            echo $user['role'] === 'admin' ? 'danger' : 
+                                                ($user['role'] === 'barber' ? 'success' : 'primary'); 
+                                        ?>">
+                                            <?php echo ucfirst($user['role']); ?>
+                                        </span>
+                                    </td>
+                                    <td><?php echo $user['total_appointments']; ?></td>
+                                    <td><?php echo $user['last_activity'] ? date('M j, Y', strtotime($user['last_activity'])) : 'Never'; ?></td>
+                                    <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
+                                    <td class="action-buttons">
+                                        <button class="btn btn-sm btn-secondary" onclick="showUserInfo(<?php echo htmlspecialchars(json_encode($user)); ?>)">
+                                            <i class="fas fa-info-circle"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-info" onclick="impersonateUser(<?php echo $user['id']; ?>)">
+                                            <i class="fas fa-user-secret"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" onclick="editUser(<?php echo htmlspecialchars(json_encode($user)); ?>)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id']; ?>)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

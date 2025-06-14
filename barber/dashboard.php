@@ -282,10 +282,13 @@ foreach ($appointments as $appointment) {
     </style>
 </head>
 <body class="bg-light">
-    <a href="<?php echo dirname($_SERVER['SCRIPT_NAME']) === '/barber' ? '../logout.php' : BASE_URL . '/logout.php'; ?>" class="sign-out-btn">
-        <i class="fas fa-sign-out-alt"></i> Sign Out
-    </a>
     <div class="container-fluid py-4">
+        <div class="text-center mb-4">
+            <span class="logo" style="font-size:3rem;font-weight:700;color:#3498db;">BladeX</span>
+        </div>
+        <a href="<?php echo dirname($_SERVER['SCRIPT_NAME']) === '/barber' ? '../logout.php' : BASE_URL . '/logout.php'; ?>" class="sign-out-btn">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </a>
         <!-- Stats Section -->
         <div class="dashboard-stats">
             <div class="stat-card">
