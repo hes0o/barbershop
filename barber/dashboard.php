@@ -353,7 +353,8 @@ foreach ($appointments as $appointment) {
                                                     for ($h = 0; $h <= 23; $h++) {
                                                         $time = sprintf('%02d:00', $h);
                                                         $selected = ($daySchedule['start_time'] ?? '') === $time ? 'selected' : '';
-                                                        echo "<option value=\"$time\" $selected>$time</option>";
+                                                        $label = ($time === '00:00') ? '--' : $time;
+                                                        echo "<option value=\"$time\" $selected>$label</option>";
                                                     }
                                                     ?>
                                                 </select>
@@ -365,7 +366,8 @@ foreach ($appointments as $appointment) {
                                                     for ($h = 0; $h <= 23; $h++) {
                                                         $time = sprintf('%02d:00', $h);
                                                         $selected = ($daySchedule['end_time'] ?? '') === $time ? 'selected' : '';
-                                                        echo "<option value=\"$time\" $selected>$time</option>";
+                                                        $label = ($time === '00:00') ? '--' : $time;
+                                                        echo "<option value=\"$time\" $selected>$label</option>";
                                                     }
                                                     ?>
                                                 </select>
