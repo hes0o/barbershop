@@ -1153,7 +1153,7 @@ class Database {
         return $hours;
     }
 
-    public function updateUser($id, $username, $email, $phone) {
+    public function updateUser($id, $first_name, $last_name, $email, $phone, $role) {
         try {
             // Check if email exists for other users
             $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
@@ -1167,22 +1167,22 @@ class Database {
             $stmt->close();
 
             // Get current user info for logging
-            $stmt = $this->conn->prepare("SELECT username, email, role FROM users WHERE id = ?");
+            $stmt = $this->conn->prepare("SELECT first_name, last_name, email, role FROM users WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
-            $stmt->bind_result($old_username, $old_email, $old_role);
+            $stmt->bind_result($old_first_name, $old_last_name, $old_email, $old_role);
             $stmt->fetch();
             $stmt->close();
 
             // Update user
-            $stmt = $this->conn->prepare("UPDATE users SET username = ?, email = ?, phone = ? WHERE id = ?");
-            $stmt->bind_param("sssi", $username, $email, $phone, $id);
+            $stmt = $this->conn->prepare("UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, role = ? WHERE id = ?");
+            $stmt->bind_param("sssssi", $first_name, $last_name, $email, $phone, $role, $id);
             $result = $stmt->execute();
             $stmt->close();
 
             if ($result) {
                 // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'update_user', "Updated user ID: $id - Old: {$old_username} ({$old_email}), New: $username ($email)");
+                $this->logActivity($_SESSION['user_id'], 'update_user', "Updated user ID: $id - Old: {$old_first_name} {$old_last_name} ({$old_email}, {$old_role}), New: $first_name $last_name ($email, $role)");
                 return ['success' => true, 'message' => 'User updated successfully'];
             }
             return ['success' => false, 'message' => 'Failed to update user'];

@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
             case 'edit':
-                if (isset($_POST['id'], $_POST['username'], $_POST['email'], $_POST['role'])) {
-                    $result = $db->updateUser($_POST['id'], $_POST['username'], $_POST['email'], $_POST['role']);
+                if (isset($_POST['id'], $_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['phone'], $_POST['role'])) {
+                    $result = $db->updateUser($_POST['id'], $_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['phone'], $_POST['role']);
                     if ($result['success']) {
                         $message = 'User updated successfully!';
                     } else {
@@ -343,12 +343,20 @@ $role_stmt->close();
                         <input type="hidden" name="action" value="edit">
                         <input type="hidden" name="id" id="editUserId">
                         <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" name="username" id="editUsername" required>
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" name="first_name" id="editFirstName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" name="last_name" id="editLastName" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <input type="email" class="form-control" name="email" id="editEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-control" name="phone" id="editPhone">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Role</label>
@@ -409,8 +417,10 @@ $role_stmt->close();
 
         function editUser(user) {
             document.getElementById('editUserId').value = user.id;
-            document.getElementById('editUsername').value = user.first_name;
+            document.getElementById('editFirstName').value = user.first_name;
+            document.getElementById('editLastName').value = user.last_name;
             document.getElementById('editEmail').value = user.email;
+            document.getElementById('editPhone').value = user.phone || '';
             document.getElementById('editRole').value = user.role;
             new bootstrap.Modal(document.getElementById('editUserModal')).show();
         }
