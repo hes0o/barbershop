@@ -166,6 +166,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         .switch-link:hover {
             color: #2980b9;
         }
+        .form-floating {
+            transition: all 0.3s ease;
+        }
+        .form-floating.hide {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -205,8 +211,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <form method="POST" action="" class="needs-validation" novalidate>
                     <input type="hidden" name="action" value="register">
                     <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="register-username" name="username" placeholder="Username" required>
-                        <label for="register-username">Username</label>
+                        <input type="text" class="form-control" id="register-first-name" name="first_name" placeholder="First Name" required>
+                        <label for="register-first-name">First Name</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="register-last-name" name="last_name" placeholder="Last Name" required>
+                        <label for="register-last-name">Last Name</label>
                     </div>
                     <div class="form-floating mb-3">
                         <input type="email" class="form-control" id="register-email" name="email" placeholder="name@example.com" required>

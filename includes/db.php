@@ -1261,79 +1261,55 @@ class Database {
     }
 
     public function getActivityLog($filters = []) {
-        try {
-            $query = "SELECT al.id, al.user_id, al.action, al.details, al.created_at, u.username 
-                     FROM activity_log al 
-                     JOIN users u ON al.user_id = u.id 
-                     WHERE 1=1";
-            $params = [];
-            $types = "";
-
-            if (!empty($filters['user_id'])) {
-                $query .= " AND al.user_id = ?";
-                $params[] = $filters['user_id'];
-                $types .= "i";
-            }
-
-            if (!empty($filters['action'])) {
-                $query .= " AND al.action = ?";
-                $params[] = $filters['action'];
-                $types .= "s";
-            }
-
-            if (!empty($filters['start_date'])) {
-                $query .= " AND DATE(al.created_at) >= ?";
-                $params[] = $filters['start_date'];
-                $types .= "s";
-            }
-
-            if (!empty($filters['end_date'])) {
-                $query .= " AND DATE(al.created_at) <= ?";
-                $params[] = $filters['end_date'];
-                $types .= "s";
-            }
-
-            $query .= " ORDER BY al.created_at DESC";
-            
-            if (!empty($filters['limit'])) {
-                $query .= " LIMIT ?";
-                $params[] = $filters['limit'];
-                $types .= "i";
-            }
-
-            $stmt = $this->conn->prepare($query);
-            if (!$stmt) {
-                error_log("Error preparing getActivityLog statement: " . $this->conn->error);
-                return [];
-            }
-
-            if (!empty($params)) {
-                $stmt->bind_param($types, ...$params);
-            }
-
-            if (!$stmt->execute()) {
-                error_log("Error executing getActivityLog: " . $stmt->error);
-                return [];
-            }
-
-            $stmt->bind_result($id, $user_id, $action, $details, $created_at, $username);
-            $logs = [];
-            while ($stmt->fetch()) {
-                $logs[] = [
-                    'id' => $id,
-                    'user_id' => $user_id,
-                    'action' => $action,
-                    'details' => $details,
-                    'created_at' => $created_at,
-                    'username' => $username
-                ];
-            }
-            $stmt->close();
-            return $logs;
-        } catch (Exception $e) {
-            error_log("Error in getActivityLog: " . $e->getMessage());
-            return [];
+        $query = "SELECT l.*, u.first_name, u.last_name FROM activity_log l LEFT JOIN users u ON l.user_id = u.id WHERE 1=1";
+        $params = [];
+        $types = '';
+        if (isset($filters['user_id']) && $filters['user_id']) {
+            $query .= " AND l.user_id = ?";
+            $params[] = $filters['user_id'];
+            $types .= 'i';
         }
+        if (isset($filters['action']) && $filters['action']) {
+            $query .= " AND l.action = ?";
+            $params[] = $filters['action'];
+            $types .= 's';
+        }
+        if (isset($filters['start_date']) && $filters['start_date']) {
+            $query .= " AND l.created_at >= ?";
+            $params[] = $filters['start_date'];
+            $types .= 's';
+        }
+        if (isset($filters['end_date']) && $filters['end_date']) {
+            $query .= " AND l.created_at <= ?";
+            $params[] = $filters['end_date'];
+            $types .= 's';
+        }
+        $query .= " ORDER BY l.created_at DESC";
+        if (isset($filters['limit']) && $filters['limit']) {
+            $query .= " LIMIT ?";
+            $params[] = (int)$filters['limit'];
+            $types .= 'i';
+        }
+        $stmt = $this->conn->prepare($query);
+        if ($params) {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $stmt->bind_result($id, $user_id, $action, $details, $created_at, $first_name, $last_name);
+        $logs = [];
+        while ($stmt->fetch()) {
+            $logs[] = [
+                'id' => $id,
+                'user_id' => $user_id,
+                'action' => $action,
+                'details' => $details,
+                'created_at' => $created_at,
+                'first_name' => $first_name,
+                'last_name' => $last_name
+            ];
+        }
+        $stmt->close();
+        return $logs;
     }
 
     public function clearActivityLog($days = 30) {
@@ -1355,7 +1331,7 @@ class Database {
 
     public function getAllUsers() {
         try {
-            $stmt = $this->conn->prepare("SELECT id, username, email, role, phone, created_at FROM users ORDER BY username ASC");
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, role, phone, created_at FROM users ORDER BY first_name, last_name ASC");
             if (!$stmt) {
                 error_log("Error preparing getAllUsers statement: " . $this->conn->error);
                 return [];
@@ -1364,12 +1340,13 @@ class Database {
                 error_log("Error executing getAllUsers: " . $stmt->error);
                 return [];
             }
-            $stmt->bind_result($id, $username, $email, $role, $phone, $created_at);
+            $stmt->bind_result($id, $first_name, $last_name, $email, $role, $phone, $created_at);
             $users = [];
             while ($stmt->fetch()) {
                 $users[] = [
                     'id' => $id,
-                    'username' => $username,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
                     'email' => $email,
                     'role' => $role,
                     'phone' => $phone,
@@ -1379,7 +1356,7 @@ class Database {
             $stmt->close();
             return $users;
         } catch (Exception $e) {
-            error_log("Error in getAllUsers: " . $e->getMessage());
+            error_log('getAllUsers error: ' . $e->getMessage());
             return [];
         }
     }
