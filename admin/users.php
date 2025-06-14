@@ -99,10 +99,34 @@ if (!empty($params)) {
     $stmt->bind_param($types, ...$params);
 }
 $stmt->execute();
-$users = $stmt->get_result();
+// Manual fetch instead of get_result()
+$stmt->store_result();
+$stmt->bind_result($id, $username, $email, $password, $role, $phone, $created_at, $total_appointments, $last_activity);
+$users = [];
+while ($stmt->fetch()) {
+    $users[] = [
+        'id' => $id,
+        'username' => $username,
+        'email' => $email,
+        'password' => $password,
+        'role' => $role,
+        'phone' => $phone,
+        'created_at' => $created_at,
+        'total_appointments' => $total_appointments,
+        'last_activity' => $last_activity
+    ];
+}
+$stmt->close();
 
 // Get unique roles for filter
-$roles = $db->getConnection()->query("SELECT DISTINCT role FROM users ORDER BY role")->fetch_all(MYSQLI_ASSOC);
+$roles = [];
+$role_stmt = $db->getConnection()->prepare("SELECT DISTINCT role FROM users ORDER BY role");
+$role_stmt->execute();
+$role_stmt->bind_result($role_val);
+while ($role_stmt->fetch()) {
+    $roles[] = ['role' => $role_val];
+}
+$role_stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -212,7 +236,7 @@ $roles = $db->getConnection()->query("SELECT DISTINCT role FROM users ORDER BY r
                         </tr>
                     </thead>
                     <tbody>
-                        <?php while ($user = $users->fetch_assoc()): ?>
+                        <?php foreach ($users as $user): ?>
                             <tr>
                                 <td><?php echo $user['id']; ?></td>
                                 <td>
@@ -247,7 +271,7 @@ $roles = $db->getConnection()->query("SELECT DISTINCT role FROM users ORDER BY r
                                     </button>
                                 </td>
                             </tr>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>

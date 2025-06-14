@@ -185,14 +185,31 @@ class Database {
     
     public function getBarberById($id) {
         $stmt = $this->conn->prepare("
-            SELECT b.*, u.username, u.email, u.phone 
+            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.username, u.email, u.phone 
             FROM barbers b 
             JOIN users u ON b.user_id = u.id 
             WHERE b.id = ?
         ");
         $stmt->bind_param("i", $id);
         $stmt->execute();
-        return $stmt->get_result()->fetch_assoc();
+        $stmt->bind_result($barber_id, $user_id, $bio, $experience_years, $status, $created_at, $username, $email, $phone);
+        if ($stmt->fetch()) {
+            $barber = [
+                'id' => $barber_id,
+                'user_id' => $user_id,
+                'bio' => $bio,
+                'experience_years' => $experience_years,
+                'status' => $status,
+                'created_at' => $created_at,
+                'username' => $username,
+                'email' => $email,
+                'phone' => $phone
+            ];
+            $stmt->close();
+            return $barber;
+        }
+        $stmt->close();
+        return false;
     }
     
     public function getAllBarbers() {
@@ -1142,7 +1159,9 @@ class Database {
             $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
             $stmt->bind_param("si", $email, $id);
             $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) {
+            $stmt->store_result();
+            if ($stmt->num_rows > 0) {
+                $stmt->close();
                 return ['success' => false, 'message' => 'Email already exists'];
             }
             $stmt->close();
@@ -1151,8 +1170,8 @@ class Database {
             $stmt = $this->conn->prepare("SELECT username, email, role FROM users WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
-            $result = $stmt->get_result();
-            $old_user = $result->fetch_assoc();
+            $stmt->bind_result($old_username, $old_email, $old_role);
+            $stmt->fetch();
             $stmt->close();
 
             // Update user
@@ -1163,7 +1182,7 @@ class Database {
 
             if ($result) {
                 // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'update_user', "Updated user ID: $id - Old: {$old_user['username']} ({$old_user['email']}), New: $username ($email)");
+                $this->logActivity($_SESSION['user_id'], 'update_user', "Updated user ID: $id - Old: {$old_username} ({$old_email}), New: $username ($email)");
                 return ['success' => true, 'message' => 'User updated successfully'];
             }
             return ['success' => false, 'message' => 'Failed to update user'];
@@ -1371,7 +1390,9 @@ class Database {
             $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ?");
             $stmt->bind_param("s", $email);
             $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) {
+            $stmt->store_result();
+            if ($stmt->num_rows > 0) {
+                $stmt->close();
                 return ['success' => false, 'message' => 'Email already exists'];
             }
             $stmt->close();
@@ -1404,8 +1425,8 @@ class Database {
             $stmt = $this->conn->prepare("SELECT username, email, role FROM users WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
-            $result = $stmt->get_result();
-            $user = $result->fetch_assoc();
+            $stmt->bind_result($username, $email, $role);
+            $stmt->fetch();
             $stmt->close();
 
             // Delete user
@@ -1416,7 +1437,7 @@ class Database {
 
             if ($result) {
                 // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'delete_user', "Deleted user: {$user['username']} ({$user['email']}) with role: {$user['role']}");
+                $this->logActivity($_SESSION['user_id'], 'delete_user', "Deleted user: {$username} ({$email}) with role: {$role}");
                 return ['success' => true, 'message' => 'User deleted successfully'];
             }
             return ['success' => false, 'message' => 'Failed to delete user'];
