@@ -544,8 +544,43 @@ foreach ($appointments as $appointment) {
                                         const endSel = document.querySelector(`[name='schedule[${day}][end_time]']`);
                                         const statusSel = document.querySelector(`[name='schedule[${day}][status]']`);
                                         if (schedule[day]) {
-                                            if (startSel) startSel.value = schedule[day]['start_time'];
-                                            if (endSel) endSel.value = schedule[day]['end_time'];
+                                            // Set start time
+                                            if (startSel) {
+                                                let val = schedule[day]['start_time'];
+                                                let found = false;
+                                                for (let i = 0; i < startSel.options.length; i++) {
+                                                    if (startSel.options[i].value === val) {
+                                                        found = true;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!found && val) {
+                                                    let opt = document.createElement('option');
+                                                    opt.value = val;
+                                                    opt.text = val === '00:00' ? '--' : val;
+                                                    startSel.appendChild(opt);
+                                                }
+                                                startSel.value = val;
+                                            }
+                                            // Set end time
+                                            if (endSel) {
+                                                let val = schedule[day]['end_time'];
+                                                let found = false;
+                                                for (let i = 0; i < endSel.options.length; i++) {
+                                                    if (endSel.options[i].value === val) {
+                                                        found = true;
+                                                        break;
+                                                    }
+                                                }
+                                                if (!found && val) {
+                                                    let opt = document.createElement('option');
+                                                    opt.value = val;
+                                                    opt.text = val === '00:00' ? '--' : val;
+                                                    endSel.appendChild(opt);
+                                                }
+                                                endSel.value = val;
+                                            }
+                                            // Set status
                                             if (statusSel) statusSel.value = schedule[day]['status'];
                                         }
                                     });
