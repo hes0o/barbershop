@@ -36,6 +36,9 @@ $pending_appointments = array_filter($all_appointments, function($apt) {
 // Get weekly schedule
 $weekly_schedule = $db->getBarberWeeklySchedule($barber['id']);
 
+// Get today's available time slots for the barber
+$available_today = $db->getAvailableTimeSlots($barber['id'], $today);
+
 // Days of the week
 $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -384,6 +387,21 @@ foreach ($appointments as $appointment) {
                             <i class="fas fa-save"></i> Save Schedule
                         </button>
                     </form>
+                </div>
+                <!-- Available Times Widget -->
+                <div class="schedule-card mt-4">
+                    <h4 class="mb-3"><i class="fas fa-clock text-success me-2"></i>Today's Available Time Slots</h4>
+                    <?php if (empty($available_today)): ?>
+                        <div class="alert alert-warning mb-0">No available time slots for today.</div>
+                    <?php else: ?>
+                        <div class="d-flex flex-wrap">
+                            <?php foreach ($available_today as $slot): ?>
+                                <div class="time-slot mb-2 me-2" style="min-width:80px;">
+                                    <?php echo date('g:i A', strtotime($slot)); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
