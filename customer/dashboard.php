@@ -197,8 +197,40 @@ function getStatusColor($status) {
     }
 }
 
-// --- Add this before the HTML output ---
-$selected_date = isset($_GET['date']) ? $_GET['date'] : '';
+// --- Booking Form Logic ---
+$barber = $db->getSingleBarber();
+$weekly_schedule = $barber ? $db->getBarberWeeklySchedule($barber['id']) : [];
+
+// 1. Build available days-of-week
+$available_days = [];
+foreach ($weekly_schedule as $day => $info) {
+    if ($info['status'] === 'available') {
+        $available_days[] = $day;
+    }
+}
+
+// 2. Handle selected day-of-week
+$selected_day = isset($_GET['day']) ? $_GET['day'] : (count($available_days) ? $available_days[0] : '');
+
+// 3. Build next available dates for the selected day
+$available_dates = [];
+if ($barber && $selected_day) {
+    $today = new DateTime();
+    $dates_found = 0;
+    $max_dates = 4; // Show next 4 available dates for the selected day
+    $current = clone $today;
+    while ($dates_found < $max_dates) {
+        if (strtolower($current->format('l')) === $selected_day) {
+            $date_str = $current->format('Y-m-d');
+            $available_dates[] = $date_str;
+            $dates_found++;
+        }
+        $current->modify('+1 day');
+    }
+}
+$selected_date = isset($_GET['date']) ? $_GET['date'] : (count($available_dates) ? $available_dates[0] : '');
+
+// 4. Build available times for the selected date
 $available_times = [];
 if ($barber && $selected_date) {
     $available_times = $db->getAvailableTimeSlots($barber['id'], $selected_date);
@@ -460,40 +492,38 @@ if ($barber && $selected_date) {
                 <div class="card-body p-4">
                     <h3 class="section-title mb-4"><i class="fas fa-calendar-plus text-primary me-2"></i>Book an Appointment</h3>
                     <form id="bookingForm" class="row g-4" method="GET" action="">
-                        <!-- Date Selection -->
+                        <!-- Day-of-Week Selector -->
+                        <div class="col-md-4">
+                            <label for="bookingDay" class="form-label">Select Day</label>
+                            <select class="form-select" id="bookingDay" name="day" required onchange="this.form.submit()">
+                                <?php foreach ($available_days as $day): ?>
+                                    <option value="<?php echo $day; ?>" <?php echo ($selected_day === $day) ? 'selected' : ''; ?>><?php echo ucfirst($day); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <!-- Date Selector -->
                         <div class="col-md-4">
                             <label for="bookingDate" class="form-label">Select Date</label>
                             <select class="form-select" id="bookingDate" name="date" required onchange="this.form.submit()">
-                                <option value="">Choose a date</option>
-                                <?php
-                                if ($barber) {
-                                    $available_dates = $db->getAvailableDates($barber['id']);
-                                    foreach ($available_dates as $date) {
-                                        $selected = ($selected_date === $date) ? 'selected' : '';
-                                        echo '<option value="' . $date . '" ' . $selected . '>' . date('D, M j, Y', strtotime($date)) . '</option>';
-                                    }
-                                }
-                                ?>
+                                <?php foreach ($available_dates as $date): ?>
+                                    <option value="<?php echo $date; ?>" <?php echo ($selected_date === $date) ? 'selected' : ''; ?>><?php echo date('D, M j, Y', strtotime($date)); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
-
-                        <!-- Time Selection -->
+                        <!-- Time Selector -->
                         <div class="col-md-4">
                             <label for="bookingTime" class="form-label">Select Time</label>
                             <select class="form-select" id="bookingTime" name="time" required <?php echo empty($available_times) ? 'disabled' : ''; ?>>
                                 <option value=""><?php echo $selected_date ? (empty($available_times) ? 'No available times' : 'Choose a time') : 'Select a date first'; ?></option>
-                                <?php
-                                if (!empty($available_times)) {
+                                <?php if (!empty($available_times)) {
                                     foreach ($available_times as $time) {
                                         echo '<option value="' . $time . '">' . date('g:i A', strtotime($time)) . '</option>';
                                     }
-                                }
-                                ?>
+                                } ?>
                             </select>
                         </div>
-
-                        <!-- Service Selection -->
-                        <div class="col-md-4">
+                        <!-- Service Selector -->
+                        <div class="col-md-12 mt-3">
                             <label for="bookingService" class="form-label">Select Service</label>
                             <select class="form-select" id="bookingService" name="service_id" required>
                                 <option value="">Choose a service</option>
@@ -504,14 +534,12 @@ if ($barber && $selected_date) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-
                         <!-- Submit Button -->
-                        <div class="col-12 text-end">
+                        <div class="col-12 text-end mt-3">
                             <button type="submit" class="btn btn-primary" id="submitBooking">
                                 <i class="fas fa-calendar-check me-2"></i>Book Appointment
                             </button>
                         </div>
-
                         <!-- Result Message -->
                         <div class="col-12">
                             <div id="bookingResult"></div>
