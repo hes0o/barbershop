@@ -24,10 +24,10 @@ class Database {
     }
     
     // User Operations
-    public function createUser($username, $email, $password, $role = 'customer', $phone = null) {
+    public function createUser($first_name, $last_name, $email, $password, $role = 'customer', $phone = null) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $this->conn->prepare("INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssss", $username, $email, $hashed_password, $role, $phone);
+        $stmt = $this->conn->prepare("INSERT INTO users (first_name, last_name, email, password, role, phone) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssss", $first_name, $last_name, $email, $hashed_password, $role, $phone);
         return $stmt->execute();
     }
     
@@ -45,7 +45,7 @@ class Database {
     
     public function getUserByEmail($email) {
         try {
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE email = ?");
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, password, role, phone FROM users WHERE email = ?");
             if (!$stmt) {
                 error_log("Error preparing getUserByEmail statement: " . $this->conn->error);
                 return false;
@@ -58,13 +58,14 @@ class Database {
             }
             
             // Bind the result variables
-            $stmt->bind_result($id, $username, $db_email, $password, $role, $phone);
+            $stmt->bind_result($id, $first_name, $last_name, $db_email, $password, $role, $phone);
             
             // Fetch the result
             if ($stmt->fetch()) {
                 return [
                     'id' => $id,
-                    'username' => $username,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
                     'email' => $db_email,
                     'password' => $password,
                     'role' => $role,
@@ -80,46 +81,9 @@ class Database {
         }
     }
     
-    public function getUserByUsername($username) {
-        try {
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE username = ?");
-            if (!$stmt) {
-                error_log("Error preparing getUserByUsername statement: " . $this->conn->error);
-                return false;
-            }
-            
-            $stmt->bind_param("s", $username);
-            if (!$stmt->execute()) {
-                error_log("Error executing getUserByUsername statement: " . $stmt->error);
-                return false;
-            }
-            
-            // Bind the result variables
-            $stmt->bind_result($id, $db_username, $email, $password, $role, $phone);
-            
-            // Fetch the result
-            if ($stmt->fetch()) {
-                return [
-                    'id' => $id,
-                    'username' => $db_username,
-                    'email' => $email,
-                    'password' => $password,
-                    'role' => $role,
-                    'phone' => $phone
-                ];
-            }
-            
-            $stmt->close();
-            return false;
-        } catch (Exception $e) {
-            error_log("Error in getUserByUsername: " . $e->getMessage());
-            return false;
-        }
-    }
-    
     public function getUserById($id) {
         try {
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE id = ?");
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, password, role, phone FROM users WHERE id = ?");
             if (!$stmt) {
                 error_log("Error preparing getUserById statement: " . $this->conn->error);
                 return false;
@@ -132,13 +96,14 @@ class Database {
             }
             
             // Bind the result variables
-            $stmt->bind_result($db_id, $username, $email, $password, $role, $phone);
+            $stmt->bind_result($db_id, $first_name, $last_name, $email, $password, $role, $phone);
             
             // Fetch the result
             if ($stmt->fetch()) {
                 return [
                     'id' => $db_id,
-                    'username' => $username,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
                     'email' => $email,
                     'password' => $password,
                     'role' => $role,
@@ -150,6 +115,49 @@ class Database {
             return false;
         } catch (Exception $e) {
             error_log("Error in getUserById: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function getUserByUsername($username) {
+        try {
+            // Split username into first and last name
+            $name_parts = explode(' ', $username, 2);
+            $first_name = $name_parts[0];
+            $last_name = isset($name_parts[1]) ? $name_parts[1] : '';
+
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, password, role, phone FROM users WHERE first_name = ? AND last_name = ?");
+            if (!$stmt) {
+                error_log("Error preparing getUserByUsername statement: " . $this->conn->error);
+                return false;
+            }
+            
+            $stmt->bind_param("ss", $first_name, $last_name);
+            if (!$stmt->execute()) {
+                error_log("Error executing getUserByUsername statement: " . $stmt->error);
+                return false;
+            }
+            
+            // Bind the result variables
+            $stmt->bind_result($id, $db_first_name, $db_last_name, $email, $password, $role, $phone);
+            
+            // Fetch the result
+            if ($stmt->fetch()) {
+                return [
+                    'id' => $id,
+                    'first_name' => $db_first_name,
+                    'last_name' => $db_last_name,
+                    'email' => $email,
+                    'password' => $password,
+                    'role' => $role,
+                    'phone' => $phone
+                ];
+            }
+            
+            $stmt->close();
+            return false;
+        } catch (Exception $e) {
+            error_log("Error in getUserByUsername: " . $e->getMessage());
             return false;
         }
     }
@@ -1004,7 +1012,7 @@ class Database {
             // Debug log
             error_log("[AUTH DEBUG] Attempting to authenticate user: " . $email . " with role: " . $role);
             
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role FROM users WHERE email = ? AND role = ?");
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, password, role FROM users WHERE email = ? AND role = ?");
             if ($stmt === false) {
                 error_log("[AUTH DEBUG] Prepare failed: " . $this->conn->error);
                 return false;
@@ -1016,7 +1024,7 @@ class Database {
                 return false;
             }
             
-            $stmt->bind_result($id, $username, $db_email, $hashed_password, $db_role);
+            $stmt->bind_result($id, $first_name, $last_name, $db_email, $hashed_password, $db_role);
             
             if ($stmt->fetch()) {
                 error_log("[AUTH DEBUG] User found, verifying password");
@@ -1024,7 +1032,8 @@ class Database {
                     error_log("[AUTH DEBUG] Password verified successfully");
                     return [
                         'id' => $id,
-                        'username' => $username,
+                        'first_name' => $first_name,
+                        'last_name' => $last_name,
                         'email' => $db_email,
                         'role' => $db_role
                     ];
@@ -1361,7 +1370,7 @@ class Database {
         }
     }
 
-    public function addUser($username, $email, $password, $role) {
+    public function addUser($first_name, $last_name, $email, $password, $role, $phone = null) {
         try {
             // Check if email already exists
             $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ?");
@@ -1378,15 +1387,15 @@ class Database {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
             // Insert user
-            $stmt = $this->conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $username, $email, $hashed_password, $role);
+            $stmt = $this->conn->prepare("INSERT INTO users (first_name, last_name, email, password, role, phone) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssss", $first_name, $last_name, $email, $hashed_password, $role, $phone);
             $result = $stmt->execute();
             $user_id = $this->conn->insert_id;
             $stmt->close();
 
             if ($result) {
                 // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'add_user', "Added new user: $username ($email) with role: $role");
+                $this->logActivity($_SESSION['user_id'], 'add_user', "Added new user: $first_name $last_name ($email) with role: $role");
                 return ['success' => true, 'message' => 'User added successfully'];
             }
             return ['success' => false, 'message' => 'Failed to add user'];

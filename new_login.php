@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role'] = $user['role'];
-            $_SESSION['username'] = $user['username'];
+            $_SESSION['first_name'] = $user['first_name'];
+            $_SESSION['last_name'] = $user['last_name'];
             if ($user['role'] === 'admin') {
                 header('Location: admin/dashboard.php');
                 exit;
@@ -40,30 +41,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'register') {
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
-    $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
-    if (empty($first_name) || empty($last_name) || empty($username) || empty($email) || empty($phone) || empty($password) || empty($confirm_password)) {
+    if (empty($first_name) || empty($last_name) || empty($email) || empty($phone) || empty($password) || empty($confirm_password)) {
         $error = 'All fields are required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Invalid email format.';
     } elseif ($password !== $confirm_password) {
         $error = 'Passwords do not match.';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters.';
+    } elseif (strlen($password) < 8) {
+        $error = 'Password must be at least 8 characters long.';
     } else {
         $db = new Database();
-        if ($db->getUserByUsername($username)) {
-            $error = 'Username already exists.';
-        } elseif ($db->getUserByEmail($email)) {
+        // Check if email already exists
+        if ($db->getUserByEmail($email)) {
             $error = 'Email already exists.';
         } else {
-            // Save as customer, store first/last name in username (or extend DB if needed)
-            $full_username = $first_name . ' ' . $last_name;
-            if ($db->createUser($username, $email, $password, 'customer', $phone)) {
+            // Create new user
+            if ($db->createUser($first_name, $last_name, $email, $password, 'customer', $phone)) {
                 $success = 'Registration successful! You can now log in.';
             } else {
                 $error = 'Registration failed. Please try again.';
