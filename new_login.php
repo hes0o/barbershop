@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             font-family: 'Poppins', sans-serif;
         }
         .auth-container {
-            max-width: 1000px;
+            max-width: 500px;
             width: 95%;
             padding: 2rem;
             background: rgba(255, 255, 255, 0.95);
@@ -158,14 +158,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             color: #3498db;
             margin-bottom: 1rem;
         }
-        .split-layout {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 2rem;
+        .switch-link {
+            color: #3498db;
+            cursor: pointer;
+            text-decoration: underline;
         }
-        .split-layout > div {
-            flex: 1;
-            min-width: 300px;
+        .switch-link:hover {
+            color: #2980b9;
         }
     </style>
 </head>
@@ -177,52 +176,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <h1>Welcome to BladeX</h1>
                 <p>Sign in to your account or create a new one</p>
             </div>
-            <div class="split-layout">
-                <div>
-                    <h2>Login</h2>
-                    <form method="POST" action="" class="needs-validation" novalidate>
-                        <input type="hidden" name="action" value="login">
-                        <div class="form-floating mb-3">
-                            <input type="email" class="form-control" id="login-email" name="email" placeholder="name@example.com" required>
-                            <label for="login-email">Email address</label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control" id="login-password" name="password" placeholder="Password" required>
-                            <label for="login-password">Password</label>
-                        </div>
-                        <button type="submit" class="btn btn-auth">Sign In</button>
-                    </form>
+            <?php if ($error): ?>
+                <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+            <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
+            <?php endif; ?>
+            <div id="loginForm">
+                <h2>Login</h2>
+                <form method="POST" action="" class="needs-validation" novalidate>
+                    <input type="hidden" name="action" value="login">
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="login-email" name="email" placeholder="name@example.com" required>
+                        <label for="login-email">Email address</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="login-password" name="password" placeholder="Password" required>
+                        <label for="login-password">Password</label>
+                    </div>
+                    <button type="submit" class="btn btn-auth">Sign In</button>
+                </form>
+                <div class="mt-3 text-center">
+                    <span>Don't have an account? <span class="switch-link" onclick="switchToRegister()">Register</span></span>
                 </div>
-                <div>
-                    <h2>Register</h2>
-                    <form method="POST" action="" class="needs-validation" novalidate>
-                        <input type="hidden" name="action" value="register">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="register-username" name="username" placeholder="Username" required>
-                            <label for="register-username">Username</label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="email" class="form-control" id="register-email" name="email" placeholder="name@example.com" required>
-                            <label for="register-email">Email address</label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="tel" class="form-control" id="register-phone" name="phone" pattern="[0-9]{10}" placeholder="Phone Number">
-                            <label for="register-phone">Phone Number</label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control" id="register-password" name="password" placeholder="Password" required minlength="6">
-                            <label for="register-password">Password</label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control" id="register-confirm-password" name="confirm_password" placeholder="Confirm Password" required>
-                            <label for="register-confirm-password">Confirm Password</label>
-                        </div>
-                        <button type="submit" class="btn btn-auth">Create Account</button>
-                    </form>
+            </div>
+            <div id="registerForm" style="display:none;">
+                <h2>Register</h2>
+                <form method="POST" action="" class="needs-validation" novalidate>
+                    <input type="hidden" name="action" value="register">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="register-username" name="username" placeholder="Username" required>
+                        <label for="register-username">Username</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="register-email" name="email" placeholder="name@example.com" required>
+                        <label for="register-email">Email address</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="tel" class="form-control" id="register-phone" name="phone" pattern="[0-9]{10}" placeholder="Phone Number">
+                        <label for="register-phone">Phone Number</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="register-password" name="password" placeholder="Password" required minlength="6">
+                        <label for="register-password">Password</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="register-confirm-password" name="confirm_password" placeholder="Confirm Password" required>
+                        <label for="register-confirm-password">Confirm Password</label>
+                    </div>
+                    <button type="submit" class="btn btn-auth">Create Account</button>
+                </form>
+                <div class="mt-3 text-center">
+                    <span>Already have an account? <span class="switch-link" onclick="switchToLogin()">Login</span></span>
                 </div>
             </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function switchToRegister() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+        function switchToLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+    </script>
 </body>
 </html> 
