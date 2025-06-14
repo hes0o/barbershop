@@ -95,6 +95,9 @@ $query .= " ORDER BY $sort_by $sort_order";
 
 // Prepare and execute query
 $stmt = $db->getConnection()->prepare($query);
+if ($stmt === false) {
+    die('<div style="color:red;">SQL Prepare Error: ' . htmlspecialchars($db->getConnection()->error) . '<br>Query: ' . htmlspecialchars($query) . '</div>');
+}
 if (!empty($params)) {
     $stmt->bind_param($types, ...$params);
 }
