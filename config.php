@@ -183,4 +183,17 @@ if ($count == 0) {
 
 // Close connection
 $conn->close();
+
+// Maintenance mode check (except for admin pages)
+if (basename($_SERVER['SCRIPT_NAME']) !== 'admin/dashboard.php' &&
+    strpos($_SERVER['SCRIPT_NAME'], '/admin/') === false) {
+    require_once __DIR__ . '/includes/db.php';
+    $db = new Database();
+    if ($db->getMaintenanceMode() === 'on') {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Site Under Maintenance</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head><body><div class="container text-center py-5"><h1 class="display-4 text-danger mb-4">Site Under Maintenance</h1><p class="lead">We are currently performing scheduled maintenance.<br>Please check back soon.</p></div></body></html>';
+            exit;
+        }
+    }
+}
 ?> 

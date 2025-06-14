@@ -11,6 +11,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 $db = new Database();
 
+// Handle maintenance mode toggle (AJAX)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_maintenance'])) {
+    $mode = ($_POST['toggle_maintenance'] === 'on') ? 'on' : 'off';
+    $db->setMaintenanceMode($mode);
+    echo json_encode(['success' => true, 'mode' => $mode]);
+    exit;
+}
+
+$maintenance_mode = $db->getMaintenanceMode();
+
 // Quick stats
 $total_users = count($db->getAllCustomers());
 $total_barbers = count($db->getAllBarbers());
@@ -86,8 +96,53 @@ $total_services = count($db->getAllServices());
                     </div>
                 </div>
             </div>
+            <div class="mb-4">
+                <form id="maintenanceForm" class="d-inline">
+                    <label class="form-label fw-bold me-2">Maintenance Mode:</label>
+                    <div class="form-check form-switch d-inline">
+                        <input class="form-check-input" type="checkbox" id="maintenanceSwitch" name="toggle_maintenance" value="on" <?php echo ($maintenance_mode === 'on') ? 'checked' : ''; ?>>
+                        <label class="form-check-label ms-2" for="maintenanceSwitch">
+                            <span id="maintenanceStatus" class="fw-bold <?php echo ($maintenance_mode === 'on') ? 'text-danger' : 'text-success'; ?>">
+                                <?php echo ($maintenance_mode === 'on') ? 'ON (Site Under Maintenance)' : 'OFF (Site Live)'; ?>
+                            </span>
+                        </label>
+                    </div>
+                </form>
+                <div id="maintenanceMsg" class="mt-2"></div>
+            </div>
             <div class="alert alert-info">Welcome to the admin dashboard! Use the sidebar to manage users, barbers, appointments, and services.</div>
         </div>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Maintenance mode toggle
+        const maintenanceSwitch = document.getElementById('maintenanceSwitch');
+        const maintenanceStatus = document.getElementById('maintenanceStatus');
+        const maintenanceMsg = document.getElementById('maintenanceMsg');
+        if (maintenanceSwitch) {
+            maintenanceSwitch.addEventListener('change', function() {
+                const mode = this.checked ? 'on' : 'off';
+                fetch('dashboard.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'toggle_maintenance=' + mode
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        maintenanceStatus.textContent = (mode === 'on') ? 'ON (Site Under Maintenance)' : 'OFF (Site Live)';
+                        maintenanceStatus.className = 'fw-bold ' + (mode === 'on' ? 'text-danger' : 'text-success');
+                        maintenanceMsg.innerHTML = '<div class="alert alert-success py-2">Maintenance mode ' + (mode === 'on' ? 'enabled' : 'disabled') + '.</div>';
+                    } else {
+                        maintenanceMsg.innerHTML = '<div class="alert alert-danger py-2">Failed to update maintenance mode.</div>';
+                    }
+                })
+                .catch(() => {
+                    maintenanceMsg.innerHTML = '<div class="alert alert-danger py-2">Failed to update maintenance mode.</div>';
+                });
+            });
+        }
+    });
+    </script>
 </body>
 </html> 
