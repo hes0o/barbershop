@@ -12,49 +12,71 @@ $db = new Database();
 $message = '';
 $error = '';
 
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Handle user actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
-        switch ($_POST['action']) {
-            case 'add':
-                if (isset($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['password'], $_POST['role'])) {
-                    $result = $db->addUser($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['password'], $_POST['role']);
-                    if ($result['success']) {
-                        $message = 'User added successfully!';
-                    } else {
-                        $error = $result['message'];
+        // Verify CSRF token
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            $error = 'Invalid request';
+        } else {
+            switch ($_POST['action']) {
+                case 'add':
+                    if (isset($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['password'], $_POST['role'])) {
+                        $result = $db->addUser($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['password'], $_POST['role']);
+                        if ($result['success']) {
+                            $_SESSION['message'] = 'User added successfully!';
+                            header('Location: ' . $_SERVER['PHP_SELF']);
+                            exit;
+                        } else {
+                            $error = $result['message'];
+                        }
                     }
-                }
-                break;
-            case 'edit':
-                if (isset($_POST['id'], $_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['phone'], $_POST['role'])) {
-                    $result = $db->updateUser(
-                        $_POST['id'],
-                        $_POST['first_name'],
-                        $_POST['last_name'],
-                        $_POST['email'],
-                        $_POST['phone'],
-                        $_POST['role']
-                    );
-                    if ($result['success']) {
-                        $message = 'User updated successfully!';
-                    } else {
-                        $error = $result['message'];
+                    break;
+                case 'edit':
+                    if (isset($_POST['id'], $_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['phone'], $_POST['role'])) {
+                        $result = $db->updateUser(
+                            $_POST['id'],
+                            $_POST['first_name'],
+                            $_POST['last_name'],
+                            $_POST['email'],
+                            $_POST['phone'],
+                            $_POST['role']
+                        );
+                        if ($result['success']) {
+                            $_SESSION['message'] = 'User updated successfully!';
+                            header('Location: ' . $_SERVER['PHP_SELF']);
+                            exit;
+                        } else {
+                            $error = $result['message'];
+                        }
                     }
-                }
-                break;
-            case 'delete':
-                if (isset($_POST['id'])) {
-                    $result = $db->deleteUser($_POST['id']);
-                    if ($result['success']) {
-                        $message = 'User deleted successfully!';
-                    } else {
-                        $error = $result['message'];
+                    break;
+                case 'delete':
+                    if (isset($_POST['id'])) {
+                        $result = $db->deleteUser($_POST['id']);
+                        if ($result['success']) {
+                            $_SESSION['message'] = 'User deleted successfully!';
+                            header('Location: ' . $_SERVER['PHP_SELF']);
+                            exit;
+                        } else {
+                            $error = $result['message'];
+                        }
                     }
-                }
-                break;
+                    break;
+            }
         }
     }
+}
+
+// Get message from session and clear it
+if (isset($_SESSION['message'])) {
+    $message = $_SESSION['message'];
+    unset($_SESSION['message']);
 }
 
 // Get search and filter parameters
@@ -305,6 +327,7 @@ $role_stmt->close();
                 <form method="POST">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                         <div class="mb-3">
                             <label class="form-label">First Name</label>
                             <input type="text" class="form-control" name="first_name" required>
@@ -350,6 +373,7 @@ $role_stmt->close();
                 <form method="POST" id="editUserForm">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="edit">
+                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                         <input type="hidden" name="id" id="editUserId">
                         <div class="mb-3">
                             <label class="form-label">First Name</label>
@@ -455,6 +479,7 @@ $role_stmt->close();
                 form.method = 'POST';
                 form.innerHTML = `
                     <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                     <input type="hidden" name="id" value="${userId}">
                 `;
                 document.body.appendChild(form);

@@ -1412,6 +1412,9 @@ class Database {
 
     public function deleteUser($id) {
         try {
+            // Start transaction
+            $this->conn->begin_transaction();
+
             // Get user info before deletion for logging
             $stmt = $this->conn->prepare("SELECT first_name, last_name, email, role FROM users WHERE id = ?");
             $stmt->bind_param("i", $id);
@@ -1419,6 +1422,30 @@ class Database {
             $stmt->bind_result($first_name, $last_name, $email, $role);
             $stmt->fetch();
             $stmt->close();
+
+            // Check for foreign key constraints
+            $tables_to_check = [
+                'appointments' => 'user_id',
+                'barbers' => 'user_id',
+                'activity_log' => 'user_id'
+            ];
+
+            foreach ($tables_to_check as $table => $column) {
+                $stmt = $this->conn->prepare("SELECT COUNT(*) FROM $table WHERE $column = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $stmt->bind_result($count);
+                $stmt->fetch();
+                $stmt->close();
+
+                if ($count > 0) {
+                    $this->conn->rollback();
+                    return [
+                        'success' => false,
+                        'message' => "Cannot delete user because they have associated records in the $table table"
+                    ];
+                }
+            }
 
             // Delete user
             $stmt = $this->conn->prepare("DELETE FROM users WHERE id = ?");
@@ -1429,12 +1456,21 @@ class Database {
             if ($result) {
                 // Log the activity
                 $this->logActivity($_SESSION['user_id'], 'delete_user', "Deleted user: {$first_name} {$last_name} ({$email}) with role: {$role}");
+                
+                // Commit transaction
+                $this->conn->commit();
+                
                 return ['success' => true, 'message' => 'User deleted successfully'];
             }
+
+            // If we get here, something went wrong
+            $this->conn->rollback();
             return ['success' => false, 'message' => 'Failed to delete user'];
         } catch (Exception $e) {
+            // Rollback transaction on error
+            $this->conn->rollback();
             error_log("Error in deleteUser: " . $e->getMessage());
-            return ['success' => false, 'message' => 'An error occurred'];
+            return ['success' => false, 'message' => 'An error occurred: ' . $e->getMessage()];
         }
     }
 
