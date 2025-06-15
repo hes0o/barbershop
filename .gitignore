@@ -22,6 +22,7 @@ logs/
 error_log
 
 # Dependencies
+/vendor/
 /node_modules/
 
 # Cache files
