@@ -69,7 +69,9 @@ $stmt->close();
 
 // Get upcoming appointments
 $stmt = $db->getConnection()->prepare("
-    SELECT a.*, s.name as service_name, s.price, s.duration,
+    SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date,
+           a.appointment_time, a.status, a.notes, a.created_at,
+           s.name as service_name, s.price, s.duration,
            b.id as barber_id, CONCAT(u.first_name, ' ', u.last_name) as barber_name
     FROM appointments a
     JOIN services s ON a.service_id = s.id
@@ -92,7 +94,7 @@ $stmt->bind_result(
     $appointment_id, $user_id, $barber_id, $service_id, $appointment_date,
     $appointment_time, $status, $notes, $created_at,
     $service_name, $price, $duration,
-    $barber_name
+    $barber_id, $barber_name
 );
 
 $appointments = [];
