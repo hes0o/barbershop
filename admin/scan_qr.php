@@ -49,8 +49,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
             <div class="card mb-4">
                 <div class="card-body">
                     <p class="lead">Scan a customer's appointment QR code to mark their appointment as completed.</p>
-                    <div id="reader"></div>
-                    <div id="scan-result" class="scan-result"></div>
+                    <div class="container py-4">
+                        <div class="row">
+                            <div class="col-12">
+                                <div id="reader"></div>
+                                <div id="scan-result" class="scan-result"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -58,7 +64,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-    // Initialize QR Code Scanner (match test_qr_system.php)
+    // Initialize QR Code Scanner (identical to test_qr_system.php)
     const html5QrcodeScanner = new Html5QrcodeScanner(
         "reader", { fps: 10, qrbox: 250 });
 
