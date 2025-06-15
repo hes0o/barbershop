@@ -1,7 +1,16 @@
 {{greeting}}
 
-<p>Your appointment is confirmed for <strong>{{appointment_date}}</strong> at <strong>{{appointment_time}}</strong>.</p>
-<p>Service: <strong>{{service_name}}</strong></p>
-<p>Barber: <strong>{{barber_name}}</strong></p>
+<p style="font-size: 1.1em;">
+  <span class="highlight">Your appointment is confirmed!</span>
+</p>
+<p>
+  <strong>Date:</strong> <span class="highlight">{{appointment_date}}</span><br>
+  <strong>Time:</strong> <span class="highlight">{{appointment_time}}</span><br>
+  <strong>Service:</strong> {{service_name}}<br>
+  <strong>Barber:</strong> {{barber_name}}
+</p>
 
-<p>Thank you for booking with us!</p> 
+<a href="#" class="button">View Appointment</a>
+
+<p style="margin-top: 32px;">Thank you for booking with <span class="highlight">BarberShop</span>!<br>
+We look forward to seeing you soon.</p> 
