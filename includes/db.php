@@ -1500,8 +1500,15 @@ class Database {
             $stmt = $this->conn->prepare("SELECT name, price, duration FROM services WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
-            $result = $stmt->get_result();
-            $service = $result->fetch_assoc();
+            $stmt->bind_result($name, $price, $duration);
+            $service = null;
+            if ($stmt->fetch()) {
+                $service = [
+                    'name' => $name,
+                    'price' => $price,
+                    'duration' => $duration
+                ];
+            }
             $stmt->close();
 
             // Delete service
@@ -1516,7 +1523,7 @@ class Database {
 
             if ($result) {
                 // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'delete_service', "Deleted service: {$service['name']} ($${$service['price']}, {$service['duration']} min)");
+                $this->logActivity($_SESSION['user_id'], 'delete_service', "Deleted service: {$service['name']} (${$service['price']}, {$service['duration']} min)");
                 return ['success' => true, 'message' => 'Service deleted successfully'];
             }
             return ['success' => false, 'message' => 'Failed to delete service'];
