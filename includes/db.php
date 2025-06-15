@@ -1417,10 +1417,17 @@ class Database {
 
             // Get user info before deletion for logging
             $stmt = $this->conn->prepare("SELECT first_name, last_name, email, role FROM users WHERE id = ?");
+            if ($stmt === false) {
+                throw new Exception("Error preparing user info statement: " . $this->conn->error);
+            }
             $stmt->bind_param("i", $id);
             $stmt->execute();
             $stmt->bind_result($first_name, $last_name, $email, $role);
-            $stmt->fetch();
+            if (!$stmt->fetch()) {
+                $stmt->close();
+                $this->conn->rollback();
+                return ['success' => false, 'message' => 'User not found'];
+            }
             $stmt->close();
 
             // Check for foreign key constraints
@@ -1431,7 +1438,11 @@ class Database {
             ];
 
             foreach ($tables_to_check as $table => $column) {
-                $stmt = $this->conn->prepare("SELECT COUNT(*) FROM $table WHERE $column = ?");
+                $check_sql = "SELECT COUNT(*) FROM $table WHERE $column = ?";
+                $stmt = $this->conn->prepare($check_sql);
+                if ($stmt === false) {
+                    throw new Exception("Error preparing check statement for $table: " . $this->conn->error);
+                }
                 $stmt->bind_param("i", $id);
                 $stmt->execute();
                 $stmt->bind_result($count);
@@ -1449,6 +1460,9 @@ class Database {
 
             // Delete user
             $stmt = $this->conn->prepare("DELETE FROM users WHERE id = ?");
+            if ($stmt === false) {
+                throw new Exception("Error preparing delete statement: " . $this->conn->error);
+            }
             $stmt->bind_param("i", $id);
             $result = $stmt->execute();
             $stmt->close();
