@@ -474,11 +474,16 @@ if ($barber && $selected_date) {
                                             <span class="text-danger">Cancellation Note: <?php echo htmlspecialchars($appointment['notes']); ?></span>
                                             <?php endif; ?>
                                         </p>
-                                        <?php if ($appointment['status'] === 'pending'): ?>
-                                            <button class="btn btn-danger btn-sm" onclick="cancelAppointment(<?php echo $appointment['id']; ?>)">
-                                                Cancel Appointment
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <?php if ($appointment['status'] === 'pending'): ?>
+                                                <button class="btn btn-danger btn-sm" onclick="cancelAppointment(<?php echo $appointment['id']; ?>)">
+                                                    Cancel Appointment
+                                                </button>
+                                            <?php endif; ?>
+                                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="showQrCode('<?php echo $_SESSION['user_id']; ?>','<?php echo $appointment['id']; ?>')">
+                                                <i class="fas fa-qrcode"></i> Show QR Code
                                             </button>
-                                        <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -557,6 +562,24 @@ if ($barber && $selected_date) {
             </div>
         </div>
         <?php endif; ?>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="qrModalLabel"><i class="fas fa-qrcode text-primary"></i> Appointment QR Code</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <div id="qrCodeContainer">
+              <img id="qrCodeImg" src="" alt="QR Code" style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 8px; background: #fff; border-radius: 8px;">
+            </div>
+            <div class="mt-2 small text-muted" id="qrCodeText"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -671,6 +694,13 @@ if ($barber && $selected_date) {
                 });
         }
     });
+
+    function showQrCode(userId, appointmentId) {
+        const payload = `USER:${userId}|APT:${appointmentId}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(payload)}&size=220x220`;
+        document.getElementById('qrCodeImg').src = qrUrl;
+        document.getElementById('qrCodeText').textContent = payload;
+    }
     </script>
 </body>
 </html> 
