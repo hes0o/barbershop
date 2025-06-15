@@ -48,13 +48,35 @@ $total_services = count($db->getAllServices());
         .stat-icon { font-size: 2rem; margin-bottom: 0.5rem; }
         .stat-value { font-size: 2rem; font-weight: bold; }
         .stat-label { color: #6c757d; font-size: 1rem; }
+        @media (max-width: 991.98px) {
+            .sidebar { position: fixed; left: -220px; top: 0; width: 220px; z-index: 1040; transition: left 0.3s; }
+            .sidebar.show { left: 0; }
+            .main-content { margin-left: 0; padding: 1rem; }
+            .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); z-index: 1039; }
+            .sidebar-backdrop.show { display: block; }
+        }
+        @media (max-width: 767.98px) {
+            .stat-card { padding: 1rem; }
+            .stat-value { font-size: 1.3rem; }
+            .main-content { padding: 0.5rem; }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Navbar -->
+    <nav class="navbar navbar-dark bg-dark d-lg-none">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" id="sidebarToggle">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <span class="navbar-brand mb-0 h1"><i class="fas fa-crown"></i> Admin</span>
+        </div>
+    </nav>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <div class="d-flex">
         <!-- Sidebar -->
-        <nav class="sidebar d-flex flex-column p-3" style="width:220px;">
-            <h3 class="mb-4"><i class="fas fa-crown"></i> Admin</h3>
+        <nav class="sidebar d-flex flex-column p-3" id="sidebar" style="width:220px;">
+            <h3 class="mb-4 d-none d-lg-block"><i class="fas fa-crown"></i> Admin</h3>
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item"><a href="dashboard.php" class="nav-link active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
                 <li><a href="users.php" class="nav-link"><i class="fas fa-users"></i> Users</a></li>
@@ -64,34 +86,34 @@ $total_services = count($db->getAllServices());
                 <li><a href="../test_qr_system.php" class="nav-link"><i class="fas fa-qrcode"></i> Scan QR Code</a></li>
             </ul>
             <hr>
-            <a href="../logout.php" class="btn btn-danger w-100"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="../logout.php" class="btn btn-danger w-100 mt-auto"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </nav>
         <!-- Main Content -->
         <div class="main-content flex-grow-1">
             <h2 class="mb-4">Dashboard Overview</h2>
             <div class="row g-4 mb-4">
-                <div class="col-md-3">
+                <div class="col-12 col-sm-6 col-md-3">
                     <div class="stat-card">
                         <div class="stat-icon text-primary"><i class="fas fa-users"></i></div>
                         <div class="stat-value"><?php echo $total_users; ?></div>
                         <div class="stat-label">Customers</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-sm-6 col-md-3">
                     <div class="stat-card">
                         <div class="stat-icon text-success"><i class="fas fa-user-tie"></i></div>
                         <div class="stat-value"><?php echo $total_barbers; ?></div>
                         <div class="stat-label">Barbers</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-sm-6 col-md-3">
                     <div class="stat-card">
                         <div class="stat-icon text-info"><i class="fas fa-calendar-alt"></i></div>
                         <div class="stat-value"><?php echo $total_appointments; ?></div>
                         <div class="stat-label">Appointments</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-sm-6 col-md-3">
                     <div class="stat-card">
                         <div class="stat-icon text-warning"><i class="fas fa-scissors"></i></div>
                         <div class="stat-value"><?php echo $total_services; ?></div>
@@ -117,7 +139,23 @@ $total_services = count($db->getAllServices());
         </div>
     </div>
     <script>
+    // Sidebar toggle for mobile
     document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('show');
+                sidebarBackdrop.classList.toggle('show');
+            });
+        }
+        if (sidebarBackdrop) {
+            sidebarBackdrop.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                sidebarBackdrop.classList.remove('show');
+            });
+        }
         // Maintenance mode toggle
         const maintenanceSwitch = document.getElementById('maintenanceSwitch');
         const maintenanceStatus = document.getElementById('maintenanceStatus');
