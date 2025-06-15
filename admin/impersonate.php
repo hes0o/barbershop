@@ -19,7 +19,7 @@ $db = new Database();
 $user_id = (int)$_GET['id'];
 
 // Get user details
-$stmt = $db->getConnection()->prepare("SELECT id, username, email, role FROM users WHERE id = ?");
+$stmt = $db->getConnection()->prepare("SELECT id, first_name, last_name, email, role FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -31,7 +31,8 @@ if ($user = $result->fetch_assoc()) {
     
     // Set impersonated user session
     $_SESSION['user_id'] = $user['id'];
-    $_SESSION['username'] = $user['username'];
+    $_SESSION['first_name'] = $user['first_name'];
+    $_SESSION['last_name'] = $user['last_name'];
     $_SESSION['email'] = $user['email'];
     $_SESSION['role'] = $user['role'];
     $_SESSION['impersonating'] = true;

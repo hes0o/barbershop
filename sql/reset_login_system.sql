@@ -10,7 +10,8 @@ DROP TABLE IF EXISTS users;
 -- Create users table with improved structure
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'barber', 'customer') NOT NULL,
@@ -92,12 +93,12 @@ CREATE TABLE appointments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Insert default admin user
-INSERT INTO users (username, email, password, role, status) 
-VALUES ('admin', 'admin@barbershop.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'active');
+INSERT INTO users (first_name, last_name, email, password, role, status) 
+VALUES ('Admin', 'User', 'admin@barbershop.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'active');
 
 -- Insert default barber user
-INSERT INTO users (username, email, password, role, status) 
-VALUES ('barber', 'barber@barbershop.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'barber', 'active');
+INSERT INTO users (first_name, last_name, email, password, role, status) 
+VALUES ('John', 'Doe', 'barber@barbershop.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'barber', 'active');
 
 -- Insert barber record
 INSERT INTO barbers (user_id, bio, experience_years) 

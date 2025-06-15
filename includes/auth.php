@@ -55,7 +55,8 @@ class Auth {
                 'success' => true,
                 'user' => [
                     'id' => $user['id'],
-                    'username' => $user['username'],
+                    'first_name' => $user['first_name'],
+                    'last_name' => $user['last_name'],
                     'email' => $user['email'],
                     'role' => $user['role']
                 ]
@@ -78,7 +79,8 @@ class Auth {
         
         // Set session variables
         $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
+        $_SESSION['first_name'] = $user['first_name'];
+        $_SESSION['last_name'] = $user['last_name'];
         $_SESSION['email'] = $user['email'];
         $_SESSION['role'] = $user['role'];
         $_SESSION['last_activity'] = time();
@@ -175,7 +177,8 @@ class Auth {
         
         return [
             'id' => $_SESSION['user_id'],
-            'username' => $_SESSION['username'],
+            'first_name' => $_SESSION['first_name'],
+            'last_name' => $_SESSION['last_name'],
             'email' => $_SESSION['email'],
             'role' => $_SESSION['role']
         ];

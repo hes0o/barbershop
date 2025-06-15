@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role'] = $user['role'];
-            $_SESSION['username'] = $user['username'];
+            $_SESSION['first_name'] = $user['first_name'];
+            $_SESSION['last_name'] = $user['last_name'];
             if ($user['role'] === 'admin') {
                 header('Location: admin/dashboard.php');
                 exit;
@@ -40,31 +41,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'register') {
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
-    $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
-    if (empty($first_name) || empty($last_name) || empty($username) || empty($email) || empty($phone) || empty($password) || empty($confirm_password)) {
-        $error = 'All fields are required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Invalid email format.';
+    if (empty($first_name) || empty($last_name) || empty($email) || empty($phone) || empty($password) || empty($confirm_password)) {
+        $error = 'All fields are required';
     } elseif ($password !== $confirm_password) {
-        $error = 'Passwords do not match.';
-    } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters.';
+        $error = 'Passwords do not match';
     } else {
+        // Check if email already exists
         $db = new Database();
-        if ($db->getUserByUsername($username)) {
-            $error = 'Username already exists.';
-        } elseif ($db->getUserByEmail($email)) {
-            $error = 'Email already exists.';
+        if ($db->getUserByEmail($email)) {
+            $error = 'Email already exists';
         } else {
-            // Save as customer, store first/last name in username (or extend DB if needed)
-            $full_username = $first_name . ' ' . $last_name;
-            if ($db->createUser($username, $email, $password, 'customer', $phone)) {
-                $success = 'Registration successful! You can now log in.';
+            // Create user with first_name and last_name
+            if ($db->createUser($first_name, $last_name, $email, $password, 'customer', $phone)) {
+                $success = 'Registration successful! You can now login.';
             } else {
                 $error = 'Registration failed. Please try again.';
             }
@@ -211,13 +205,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <h2>Register</h2>
                 <form method="POST" action="" class="needs-validation" novalidate>
                     <input type="hidden" name="action" value="register">
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="register-first-name" name="first_name" placeholder="First Name" required>
-                        <label for="register-first-name">First Name</label>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="first_name" name="first_name"
+                               placeholder="First Name" required
+                               value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>">
+                        <label for="first_name">First Name</label>
                     </div>
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="register-last-name" name="last_name" placeholder="Last Name" required>
-                        <label for="register-last-name">Last Name</label>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="last_name" name="last_name"
+                               placeholder="Last Name" required
+                               value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>">
+                        <label for="last_name">Last Name</label>
                     </div>
                     <div class="form-floating mb-3">
                         <input type="email" class="form-control" id="register-email" name="email" placeholder="name@example.com" required>

@@ -70,7 +70,7 @@ $stmt->close();
 // Get upcoming appointments
 $stmt = $db->getConnection()->prepare("
     SELECT a.*, s.name as service_name, s.price, s.duration,
-           b.id as barber_id, u.username as barber_name
+           b.id as barber_id, CONCAT(u.first_name, ' ', u.last_name) as barber_name
     FROM appointments a
     JOIN services s ON a.service_id = s.id
     JOIN barbers b ON a.barber_id = b.id
@@ -92,7 +92,7 @@ $stmt->bind_result(
     $appointment_id, $user_id, $barber_id, $service_id, $appointment_date,
     $appointment_time, $status, $notes, $created_at,
     $service_name, $price, $duration,
-    $barber_id2, $barber_name
+    $barber_name
 );
 
 $appointments = [];
@@ -133,7 +133,7 @@ $stmt->close();
 
 // Get available barbers
 $stmt = $db->getConnection()->prepare("
-    SELECT b.id, u.username, u.email, b.bio, b.experience_years
+    SELECT b.id, CONCAT(u.first_name, ' ', u.last_name) as barber_name, u.email, b.bio, b.experience_years
     FROM barbers b
     JOIN users u ON b.user_id = u.id
     WHERE b.status = 'active'

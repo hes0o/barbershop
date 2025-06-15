@@ -84,7 +84,7 @@ try {
 echo "<h2>Test 5: Get First Barber</h2>";
 try {
     $result = $conn->query("
-        SELECT b.*, u.username 
+        SELECT b.*, CONCAT(u.first_name, ' ', u.last_name) as barber_name 
         FROM barbers b 
         JOIN users u ON b.user_id = u.id 
         LIMIT 1

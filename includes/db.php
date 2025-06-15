@@ -24,10 +24,10 @@ class Database {
     }
     
     // User Operations
-    public function createUser($username, $email, $password, $role = 'customer', $phone = null) {
+    public function createUser($first_name, $last_name, $email, $password, $role = 'customer', $phone = null) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $this->conn->prepare("INSERT INTO users (username, email, password, role, phone) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssss", $username, $email, $hashed_password, $role, $phone);
+        $stmt = $this->conn->prepare("INSERT INTO users (first_name, last_name, email, password, role, phone) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssss", $first_name, $last_name, $email, $hashed_password, $role, $phone);
         return $stmt->execute();
     }
     
@@ -45,7 +45,7 @@ class Database {
     
     public function getUserByEmail($email) {
         try {
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE email = ?");
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, password, role, phone FROM users WHERE email = ?");
             if (!$stmt) {
                 error_log("Error preparing getUserByEmail statement: " . $this->conn->error);
                 return false;
@@ -58,13 +58,14 @@ class Database {
             }
             
             // Bind the result variables
-            $stmt->bind_result($id, $username, $db_email, $password, $role, $phone);
+            $stmt->bind_result($id, $first_name, $last_name, $db_email, $password, $role, $phone);
             
             // Fetch the result
             if ($stmt->fetch()) {
                 return [
                     'id' => $id,
-                    'username' => $username,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
                     'email' => $db_email,
                     'password' => $password,
                     'role' => $role,
@@ -80,46 +81,9 @@ class Database {
         }
     }
     
-    public function getUserByUsername($username) {
-        try {
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE username = ?");
-            if (!$stmt) {
-                error_log("Error preparing getUserByUsername statement: " . $this->conn->error);
-                return false;
-            }
-            
-            $stmt->bind_param("s", $username);
-            if (!$stmt->execute()) {
-                error_log("Error executing getUserByUsername statement: " . $stmt->error);
-                return false;
-            }
-            
-            // Bind the result variables
-            $stmt->bind_result($id, $db_username, $email, $password, $role, $phone);
-            
-            // Fetch the result
-            if ($stmt->fetch()) {
-                return [
-                    'id' => $id,
-                    'username' => $db_username,
-                    'email' => $email,
-                    'password' => $password,
-                    'role' => $role,
-                    'phone' => $phone
-                ];
-            }
-            
-            $stmt->close();
-            return false;
-        } catch (Exception $e) {
-            error_log("Error in getUserByUsername: " . $e->getMessage());
-            return false;
-        }
-    }
-    
     public function getUserById($id) {
         try {
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone FROM users WHERE id = ?");
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, password, role, phone FROM users WHERE id = ?");
             if (!$stmt) {
                 error_log("Error preparing getUserById statement: " . $this->conn->error);
                 return false;
@@ -132,13 +96,14 @@ class Database {
             }
             
             // Bind the result variables
-            $stmt->bind_result($db_id, $username, $email, $password, $role, $phone);
+            $stmt->bind_result($db_id, $first_name, $last_name, $email, $password, $role, $phone);
             
             // Fetch the result
             if ($stmt->fetch()) {
                 return [
                     'id' => $db_id,
-                    'username' => $username,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
                     'email' => $email,
                     'password' => $password,
                     'role' => $role,
@@ -157,7 +122,7 @@ class Database {
     // Barber Operations
     public function getSingleBarber() {
         $stmt = $this->conn->prepare("
-            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.username, u.email, u.phone
+            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.first_name, u.last_name, u.email, u.phone
             FROM barbers b
             JOIN users u ON b.user_id = u.id
             WHERE b.status = 'active'
@@ -165,7 +130,7 @@ class Database {
         ");
         if (!$stmt) return false;
         $stmt->execute();
-        $stmt->bind_result($id, $user_id, $bio, $experience_years, $status, $created_at, $username, $email, $phone);
+        $stmt->bind_result($id, $user_id, $bio, $experience_years, $status, $created_at, $first_name, $last_name, $email, $phone);
         if ($stmt->fetch()) {
             return [
                 'id' => $id,
@@ -174,7 +139,8 @@ class Database {
                 'experience_years' => $experience_years,
                 'status' => $status,
                 'created_at' => $created_at,
-                'username' => $username,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
                 'email' => $email,
                 'phone' => $phone
             ];
@@ -185,14 +151,14 @@ class Database {
     
     public function getBarberById($id) {
         $stmt = $this->conn->prepare("
-            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.username, u.email, u.phone 
+            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.first_name, u.last_name, u.email, u.phone 
             FROM barbers b 
             JOIN users u ON b.user_id = u.id 
             WHERE b.id = ?
         ");
         $stmt->bind_param("i", $id);
         $stmt->execute();
-        $stmt->bind_result($barber_id, $user_id, $bio, $experience_years, $status, $created_at, $username, $email, $phone);
+        $stmt->bind_result($barber_id, $user_id, $bio, $experience_years, $status, $created_at, $first_name, $last_name, $email, $phone);
         if ($stmt->fetch()) {
             $barber = [
                 'id' => $barber_id,
@@ -201,7 +167,8 @@ class Database {
                 'experience_years' => $experience_years,
                 'status' => $status,
                 'created_at' => $created_at,
-                'username' => $username,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
                 'email' => $email,
                 'phone' => $phone
             ];
@@ -214,7 +181,7 @@ class Database {
     
     public function getAllBarbers() {
         $query = "
-            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.username, u.email, u.phone
+            SELECT b.id, b.user_id, b.bio, b.experience_years, b.status, b.created_at, u.first_name, u.last_name, u.email, u.phone
             FROM barbers b
             JOIN users u ON b.user_id = u.id
             WHERE b.status = 'active'
@@ -228,7 +195,7 @@ class Database {
             error_log("Error executing getAllBarbers query: " . $stmt->error);
             return [];
         }
-        $stmt->bind_result($id, $user_id, $bio, $experience_years, $status, $created_at, $username, $email, $phone);
+        $stmt->bind_result($id, $user_id, $bio, $experience_years, $status, $created_at, $first_name, $last_name, $email, $phone);
         $barbers = [];
         while ($stmt->fetch()) {
             $barbers[] = [
@@ -238,7 +205,8 @@ class Database {
                 'experience_years' => $experience_years,
                 'status' => $status,
                 'created_at' => $created_at,
-                'username' => $username,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
                 'email' => $email,
                 'phone' => $phone
             ];
@@ -345,7 +313,7 @@ class Database {
         try {
             error_log("Fetching appointments for user_id: " . $user_id);
             $stmt = $this->conn->prepare("
-                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, b.id as barber_id, u.username as barber_name
+                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, b.id as barber_id, CONCAT(u.first_name, ' ', u.last_name) as barber_name
                 FROM appointments a
                 JOIN services s ON a.service_id = s.id
                 JOIN barbers b ON a.barber_id = b.id
@@ -394,7 +362,7 @@ class Database {
         try {
             error_log("Fetching appointments for barber_id: " . $barber_id);
             $stmt = $this->conn->prepare("
-                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, u.username as customer_name, u.phone as customer_phone
+                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, u.first_name as customer_first_name, u.last_name as customer_last_name, u.phone as customer_phone
                 FROM appointments a
                 JOIN services s ON a.service_id = s.id
                 JOIN users u ON a.user_id = u.id
@@ -410,7 +378,7 @@ class Database {
                 error_log("Error executing getAppointmentsByBarber: " . $stmt->error);
                 return [];
             }
-            $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name, $price, $duration, $customer_name, $customer_phone);
+            $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name, $price, $duration, $customer_first_name, $customer_last_name, $customer_phone);
             $appointments = [];
             while ($stmt->fetch()) {
                 $appointments[] = [
@@ -426,7 +394,7 @@ class Database {
                     'service_name' => $service_name,
                     'price' => $price,
                     'duration' => $duration,
-                    'customer_name' => $customer_name,
+                    'customer_name' => $customer_first_name . ' ' . $customer_last_name,
                     'customer_phone' => $customer_phone
                 ];
             }
@@ -442,7 +410,7 @@ class Database {
     
     public function getBarberAppointments($barber_id, $status = 'all', $date = null, $search = '', $year = null, $month = null) {
         try {
-            $query = "SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, u.username as customer_name, u.phone as customer_phone FROM appointments a JOIN services s ON a.service_id = s.id JOIN users u ON a.user_id = u.id WHERE a.barber_id = ?";
+            $query = "SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, u.first_name as customer_first_name, u.last_name as customer_last_name, u.phone as customer_phone FROM appointments a JOIN services s ON a.service_id = s.id JOIN users u ON a.user_id = u.id WHERE a.barber_id = ?";
             $params = [$barber_id];
             $types = "i";
             if ($status !== 'all') {
@@ -463,10 +431,11 @@ class Database {
             }
             if ($search) {
                 $search = "%$search%";
-                $query .= " AND (u.username LIKE ? OR s.name LIKE ?)";
+                $query .= " AND (u.first_name LIKE ? OR u.last_name LIKE ? OR s.name LIKE ?)";
                 $params[] = $search;
                 $params[] = $search;
-                $types .= "ss";
+                $params[] = $search;
+                $types .= "sss";
             }
             $query .= " ORDER BY a.appointment_date ASC, a.appointment_time ASC";
             $stmt = $this->conn->prepare($query);
@@ -481,7 +450,7 @@ class Database {
                 error_log("Error executing getBarberAppointments: " . $stmt->error);
                 return [];
             }
-            $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name, $price, $duration, $customer_name, $customer_phone);
+            $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at, $service_name, $price, $duration, $customer_first_name, $customer_last_name, $customer_phone);
             $appointments = [];
             while ($stmt->fetch()) {
                 $appointments[] = [
@@ -497,7 +466,7 @@ class Database {
                     'service_name' => $service_name,
                     'price' => $price,
                     'duration' => $duration,
-                    'customer_name' => $customer_name,
+                    'customer_name' => $customer_first_name . ' ' . $customer_last_name,
                     'customer_phone' => $customer_phone
                 ];
             }
@@ -687,7 +656,12 @@ class Database {
     }
     
     public function getAllCustomers() {
-        $query = "SELECT DISTINCT u.id, u.username, u.email, u.phone, MAX(a.appointment_date) as last_visit, COUNT(a.id) as total_appointments FROM users u INNER JOIN appointments a ON u.id = a.user_id WHERE u.role = 'customer' GROUP BY u.id, u.username, u.email, u.phone ORDER BY u.username ASC";
+        $query = "SELECT DISTINCT u.id, u.first_name, u.last_name, u.email, u.phone, MAX(a.appointment_date) as last_visit, COUNT(a.id) as total_appointments 
+                 FROM users u 
+                 INNER JOIN appointments a ON u.id = a.user_id 
+                 WHERE u.role = 'customer' 
+                 GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone 
+                 ORDER BY u.first_name, u.last_name ASC";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) {
             error_log("SQL Error in getAllCustomers: " . $this->conn->error);
@@ -697,12 +671,13 @@ class Database {
             error_log("Error executing getAllCustomers: " . $stmt->error);
             return [];
         }
-        $stmt->bind_result($id, $username, $email, $phone, $last_visit, $total_appointments);
+        $stmt->bind_result($id, $first_name, $last_name, $email, $phone, $last_visit, $total_appointments);
         $customers = [];
         while ($stmt->fetch()) {
             $customers[] = [
                 'id' => $id,
-                'username' => $username,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
                 'email' => $email,
                 'phone' => $phone,
                 'last_visit' => $last_visit,
@@ -714,18 +689,22 @@ class Database {
     }
     
     public function getBarberCustomers($barber_id, $search = '') {
-        $query = "SELECT DISTINCT u.id, u.username, u.email, u.phone, MAX(a.appointment_date) as last_visit, COUNT(a.id) as total_appointments FROM users u INNER JOIN appointments a ON u.id = a.user_id WHERE a.barber_id = ? AND u.role = 'customer'";
+        $query = "SELECT DISTINCT u.id, u.first_name, u.last_name, u.email, u.phone, MAX(a.appointment_date) as last_visit, COUNT(a.id) as total_appointments 
+                 FROM users u 
+                 INNER JOIN appointments a ON u.id = a.user_id 
+                 WHERE a.barber_id = ? AND u.role = 'customer'";
         $params = [$barber_id];
         $types = "i";
         if ($search) {
-            $query .= " AND (u.username LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)";
+            $query .= " AND (u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)";
             $search_param = "%$search%";
             $params[] = $search_param;
             $params[] = $search_param;
             $params[] = $search_param;
-            $types .= "sss";
+            $params[] = $search_param;
+            $types .= "ssss";
         }
-        $query .= " GROUP BY u.id, u.username, u.email, u.phone ORDER BY last_visit DESC";
+        $query .= " GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone ORDER BY last_visit DESC";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) {
             throw new Exception("Error preparing statement: " . $this->conn->error);
@@ -734,12 +713,13 @@ class Database {
         if (!$stmt->execute()) {
             throw new Exception("Error executing statement: " . $stmt->error);
         }
-        $stmt->bind_result($id, $username, $email, $phone, $last_visit, $total_appointments);
+        $stmt->bind_result($id, $first_name, $last_name, $email, $phone, $last_visit, $total_appointments);
         $customers = [];
         while ($stmt->fetch()) {
             $customers[] = [
                 'id' => $id,
-                'username' => $username,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
                 'email' => $email,
                 'phone' => $phone,
                 'last_visit' => $last_visit,
@@ -1004,7 +984,7 @@ class Database {
             // Debug log
             error_log("[AUTH DEBUG] Attempting to authenticate user: " . $email . " with role: " . $role);
             
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role FROM users WHERE email = ? AND role = ?");
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, password, role FROM users WHERE email = ? AND role = ?");
             if ($stmt === false) {
                 error_log("[AUTH DEBUG] Prepare failed: " . $this->conn->error);
                 return false;
@@ -1016,7 +996,7 @@ class Database {
                 return false;
             }
             
-            $stmt->bind_result($id, $username, $db_email, $hashed_password, $db_role);
+            $stmt->bind_result($id, $first_name, $last_name, $db_email, $hashed_password, $db_role);
             
             if ($stmt->fetch()) {
                 error_log("[AUTH DEBUG] User found, verifying password");
@@ -1024,7 +1004,8 @@ class Database {
                     error_log("[AUTH DEBUG] Password verified successfully");
                     return [
                         'id' => $id,
-                        'username' => $username,
+                        'first_name' => $first_name,
+                        'last_name' => $last_name,
                         'email' => $db_email,
                         'role' => $db_role
                     ];
@@ -1045,7 +1026,7 @@ class Database {
 
     public function getSingleCustomer() {
         try {
-            $stmt = $this->conn->prepare("SELECT id, username, email, password, role, phone, created_at FROM users WHERE role = 'customer' LIMIT 1");
+            $stmt = $this->conn->prepare("SELECT id, first_name, last_name, email, password, role, phone, created_at FROM users WHERE role = 'customer' LIMIT 1");
             if ($stmt === false) {
                 error_log("Error preparing getSingleCustomer query: " . $this->conn->error);
                 return null;
@@ -1054,11 +1035,12 @@ class Database {
                 error_log("Error executing getSingleCustomer query: " . $stmt->error);
                 return null;
             }
-            $stmt->bind_result($id, $username, $email, $password, $role, $phone, $created_at);
+            $stmt->bind_result($id, $first_name, $last_name, $email, $password, $role, $phone, $created_at);
             if ($stmt->fetch()) {
                 $customer = [
                     'id' => $id,
-                    'username' => $username,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
                     'email' => $email,
                     'password' => $password,
                     'role' => $role,
@@ -1080,7 +1062,7 @@ class Database {
         try {
             error_log("Fetching appointments for customer_id: " . $customer_id);
             $stmt = $this->conn->prepare("
-                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, b.id as barber_id, u.username as barber_name
+                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.notes, a.created_at, s.name as service_name, s.price, s.duration, b.id as barber_id, CONCAT(u.first_name, ' ', u.last_name) as barber_name
                 FROM appointments a
                 JOIN services s ON a.service_id = s.id
                 JOIN barbers b ON a.barber_id = b.id
@@ -1153,9 +1135,9 @@ class Database {
         return $hours;
     }
 
-    public function updateUser($id, $username, $email, $phone) {
+    public function updateUser($id, $first_name, $last_name, $email, $phone, $role) {
         try {
-            // Check if email exists for other users
+            // Check if email is already taken by another user
             $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
             $stmt->bind_param("si", $email, $id);
             $stmt->execute();
@@ -1167,28 +1149,72 @@ class Database {
             $stmt->close();
 
             // Get current user info for logging
-            $stmt = $this->conn->prepare("SELECT username, email, role FROM users WHERE id = ?");
+            $stmt = $this->conn->prepare("SELECT first_name, last_name, email, role FROM users WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
-            $stmt->bind_result($old_username, $old_email, $old_role);
+            $stmt->bind_result($old_first_name, $old_last_name, $old_email, $old_role);
             $stmt->fetch();
             $stmt->close();
 
-            // Update user
-            $stmt = $this->conn->prepare("UPDATE users SET username = ?, email = ?, phone = ? WHERE id = ?");
-            $stmt->bind_param("sssi", $username, $email, $phone, $id);
-            $result = $stmt->execute();
-            $stmt->close();
+            // Start transaction
+            $this->conn->begin_transaction();
 
-            if ($result) {
+            try {
+                // Update user
+                $stmt = $this->conn->prepare("UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, role = ? WHERE id = ?");
+                $stmt->bind_param("sssssi", $first_name, $last_name, $email, $phone, $role, $id);
+                $result = $stmt->execute();
+                $stmt->close();
+
+                if (!$result) {
+                    throw new Exception("Failed to update user");
+                }
+
+                // If role is changing to barber, create barber profile if it doesn't exist
+                if ($role === 'barber' && $old_role !== 'barber') {
+                    $stmt = $this->conn->prepare("SELECT id FROM barbers WHERE user_id = ?");
+                    $stmt->bind_param("i", $id);
+                    $stmt->execute();
+                    $stmt->store_result();
+                    
+                    if ($stmt->num_rows === 0) {
+                        $stmt->close();
+                        $stmt = $this->conn->prepare("INSERT INTO barbers (user_id, bio, experience_years, status) VALUES (?, '', 0, 'active')");
+                        $stmt->bind_param("i", $id);
+                        if (!$stmt->execute()) {
+                            throw new Exception("Failed to create barber profile");
+                        }
+                    }
+                    $stmt->close();
+                }
+
+                // If role is changing from barber to something else, remove barber profile
+                if ($old_role === 'barber' && $role !== 'barber') {
+                    $stmt = $this->conn->prepare("DELETE FROM barbers WHERE user_id = ?");
+                    $stmt->bind_param("i", $id);
+                    if (!$stmt->execute()) {
+                        throw new Exception("Failed to remove barber profile");
+                    }
+                    $stmt->close();
+                }
+
+                // Commit transaction
+                $this->conn->commit();
+
                 // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'update_user', "Updated user ID: $id - Old: {$old_username} ({$old_email}), New: $username ($email)");
+                $this->logActivity($_SESSION['user_id'], 'update_user', 
+                    "Updated user ID: $id - Old: {$old_first_name} {$old_last_name} ({$old_email}, {$old_role}), " .
+                    "New: $first_name $last_name ($email, $role)");
+
                 return ['success' => true, 'message' => 'User updated successfully'];
+            } catch (Exception $e) {
+                // Rollback transaction on error
+                $this->conn->rollback();
+                throw $e;
             }
-            return ['success' => false, 'message' => 'Failed to update user'];
         } catch (Exception $e) {
             error_log("Error in updateUser: " . $e->getMessage());
-            return ['success' => false, 'message' => 'An error occurred'];
+            return ['success' => false, 'message' => 'An error occurred: ' . $e->getMessage()];
         }
     }
 
@@ -1361,48 +1387,36 @@ class Database {
         }
     }
 
-    public function addUser($username, $email, $password, $role) {
+    public function addUser($first_name, $last_name, $email, $password, $role) {
         try {
             // Check if email already exists
-            $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ?");
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            $stmt->store_result();
-            if ($stmt->num_rows > 0) {
-                $stmt->close();
+            if ($this->getUserByEmail($email)) {
                 return ['success' => false, 'message' => 'Email already exists'];
             }
-            $stmt->close();
 
-            // Hash password
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-            // Insert user
-            $stmt = $this->conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $username, $email, $hashed_password, $role);
-            $result = $stmt->execute();
-            $user_id = $this->conn->insert_id;
-            $stmt->close();
-
-            if ($result) {
-                // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'add_user', "Added new user: $username ($email) with role: $role");
+            $stmt = $this->conn->prepare("INSERT INTO users (first_name, last_name, email, password, role) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssss", $first_name, $last_name, $email, $hashed_password, $role);
+            
+            if ($stmt->execute()) {
+                $this->logActivity($_SESSION['user_id'], 'add_user', "Added new user: $first_name $last_name ($email) with role: $role");
                 return ['success' => true, 'message' => 'User added successfully'];
+            } else {
+                return ['success' => false, 'message' => 'Failed to add user'];
             }
-            return ['success' => false, 'message' => 'Failed to add user'];
         } catch (Exception $e) {
             error_log("Error in addUser: " . $e->getMessage());
-            return ['success' => false, 'message' => 'An error occurred'];
+            return ['success' => false, 'message' => 'An error occurred while adding the user'];
         }
     }
 
     public function deleteUser($id) {
         try {
             // Get user info before deletion for logging
-            $stmt = $this->conn->prepare("SELECT username, email, role FROM users WHERE id = ?");
+            $stmt = $this->conn->prepare("SELECT first_name, last_name, email, role FROM users WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
-            $stmt->bind_result($username, $email, $role);
+            $stmt->bind_result($first_name, $last_name, $email, $role);
             $stmt->fetch();
             $stmt->close();
 
@@ -1414,7 +1428,7 @@ class Database {
 
             if ($result) {
                 // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'delete_user', "Deleted user: {$username} ({$email}) with role: {$role}");
+                $this->logActivity($_SESSION['user_id'], 'delete_user', "Deleted user: {$first_name} {$last_name} ({$email}) with role: {$role}");
                 return ['success' => true, 'message' => 'User deleted successfully'];
             }
             return ['success' => false, 'message' => 'Failed to delete user'];

@@ -17,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
-                if (isset($_POST['username'], $_POST['email'], $_POST['password'], $_POST['role'])) {
-                    $result = $db->addUser($_POST['username'], $_POST['email'], $_POST['password'], $_POST['role']);
+                if (isset($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['password'], $_POST['role'])) {
+                    $result = $db->addUser($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['password'], $_POST['role']);
                     if ($result['success']) {
                         $message = 'User added successfully!';
                     } else {
@@ -27,8 +27,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
             case 'edit':
-                if (isset($_POST['id'], $_POST['username'], $_POST['email'], $_POST['role'])) {
-                    $result = $db->updateUser($_POST['id'], $_POST['username'], $_POST['email'], $_POST['role']);
+                if (isset($_POST['id'], $_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['phone'], $_POST['role'])) {
+                    $result = $db->updateUser(
+                        $_POST['id'],
+                        $_POST['first_name'],
+                        $_POST['last_name'],
+                        $_POST['email'],
+                        $_POST['phone'],
+                        $_POST['role']
+                    );
                     if ($result['success']) {
                         $message = 'User updated successfully!';
                     } else {
@@ -68,11 +75,12 @@ $params = [];
 $types = '';
 
 if ($search) {
-    $where_conditions[] = "(u.username LIKE ? OR u.email LIKE ?)";
+    $where_conditions[] = "(u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ?)";
     $search_param = "%$search%";
     $params[] = $search_param;
     $params[] = $search_param;
-    $types .= 'ss';
+    $params[] = $search_param;
+    $types .= 'sss';
 }
 
 if ($role_filter) {
@@ -88,7 +96,7 @@ if (!empty($where_conditions)) {
 $query .= " GROUP BY u.id";
 
 // Add sorting
-$allowed_sort_columns = ['id', 'username', 'email', 'role', 'created_at', 'total_appointments', 'last_activity'];
+$allowed_sort_columns = ['id', 'first_name', 'last_name', 'email', 'role', 'created_at', 'total_appointments', 'last_activity'];
 $sort_by = in_array($sort_by, $allowed_sort_columns) ? $sort_by : 'id';
 $sort_order = strtoupper($sort_order) === 'DESC' ? 'DESC' : 'ASC';
 $query .= " ORDER BY $sort_by $sort_order";
@@ -155,9 +163,6 @@ $role_stmt->close();
 </head>
 <body>
     <div class="container-fluid">
-        <div class="text-center mb-4">
-            <span class="logo" style="font-size:3rem;font-weight:700;color:#3498db;">BladeX</span>
-        </div>
         <div class="d-flex">
             <!-- Sidebar -->
             <nav class="sidebar d-flex flex-column p-3" style="width:220px;">
@@ -214,11 +219,11 @@ $role_stmt->close();
                         <div class="col-md-3">
                             <select class="form-select" name="sort">
                                 <option value="id" <?php echo $sort_by === 'id' ? 'selected' : ''; ?>>Sort by ID</option>
-                                <option value="username" <?php echo $sort_by === 'username' ? 'selected' : ''; ?>>Sort by Username</option>
+                                <option value="first_name" <?php echo $sort_by === 'first_name' ? 'selected' : ''; ?>>Sort by First Name</option>
+                                <option value="last_name" <?php echo $sort_by === 'last_name' ? 'selected' : ''; ?>>Sort by Last Name</option>
                                 <option value="email" <?php echo $sort_by === 'email' ? 'selected' : ''; ?>>Sort by Email</option>
                                 <option value="role" <?php echo $sort_by === 'role' ? 'selected' : ''; ?>>Sort by Role</option>
                                 <option value="created_at" <?php echo $sort_by === 'created_at' ? 'selected' : ''; ?>>Sort by Created Date</option>
-                                <option value="total_appointments" <?php echo $sort_by === 'total_appointments' ? 'selected' : ''; ?>>Sort by Appointments</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -301,8 +306,12 @@ $role_stmt->close();
                     <div class="modal-body">
                         <input type="hidden" name="action" value="add">
                         <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" name="username" required>
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" name="first_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" name="last_name" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
@@ -343,12 +352,20 @@ $role_stmt->close();
                         <input type="hidden" name="action" value="edit">
                         <input type="hidden" name="id" id="editUserId">
                         <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" name="username" id="editUsername" required>
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" name="first_name" id="editFirstName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" name="last_name" id="editLastName" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <input type="email" class="form-control" name="email" id="editEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-control" name="phone" id="editPhone">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Role</label>
@@ -409,8 +426,10 @@ $role_stmt->close();
 
         function editUser(user) {
             document.getElementById('editUserId').value = user.id;
-            document.getElementById('editUsername').value = user.first_name;
+            document.getElementById('editFirstName').value = user.first_name;
+            document.getElementById('editLastName').value = user.last_name;
             document.getElementById('editEmail').value = user.email;
+            document.getElementById('editPhone').value = user.phone || '';
             document.getElementById('editRole').value = user.role;
             new bootstrap.Modal(document.getElementById('editUserModal')).show();
         }

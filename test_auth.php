@@ -29,22 +29,22 @@ try {
     // 2. Test User Creation
     echo "\n=== User Creation Test ===\n";
     $test_user = [
-        'username' => 'testuser_' . time(),
+        'first_name' => 'Test',
+        'last_name' => 'User_' . time(),
         'email' => 'test_' . time() . '@example.com',
-        'password' => 'Test123!',
-        'role' => 'customer',
-        'phone' => '1234567890'
+        'password' => 'testpass123',
+        'role' => 'customer'
     ];
     
-    $create_result = $db->createUser(
-        $test_user['username'],
+    $user_id = $db->createUser(
+        $test_user['first_name'],
+        $test_user['last_name'],
         $test_user['email'],
         $test_user['password'],
-        $test_user['role'],
-        $test_user['phone']
+        $test_user['role']
     );
     
-    test_result("User Creation", $create_result, "Created test user: " . $test_user['email']);
+    test_result("User Creation", $user_id !== false, "Created test user: " . $test_user['email']);
     
     // 3. Test User Retrieval
     echo "\n=== User Retrieval Test ===\n";
@@ -75,13 +75,15 @@ try {
     echo "\n=== Session Handling Test ===\n";
     session_start();
     $_SESSION['user_id'] = $user['id'];
-    $_SESSION['username'] = $user['username'];
+    $_SESSION['first_name'] = $user['first_name'];
+    $_SESSION['last_name'] = $user['last_name'];
     $_SESSION['email'] = $user['email'];
     $_SESSION['role'] = $user['role'];
     
     test_result("Session Variables Set", 
         isset($_SESSION['user_id']) && 
-        isset($_SESSION['username']) && 
+        isset($_SESSION['first_name']) && 
+        isset($_SESSION['last_name']) && 
         isset($_SESSION['email']) && 
         isset($_SESSION['role']),
         "Session data: " . print_r($_SESSION, true)

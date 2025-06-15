@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 $db = new Database();
-$appointments = $db->getConnection()->query("SELECT a.id, u.username AS customer, b.id AS barber_id, s.name AS service, a.appointment_date, a.appointment_time, a.status FROM appointments a JOIN users u ON a.user_id = u.id JOIN barbers b ON a.barber_id = b.id JOIN services s ON a.service_id = s.id ORDER BY a.appointment_date DESC, a.appointment_time DESC");
+$appointments = $db->getConnection()->query("SELECT a.id, CONCAT(u.first_name, ' ', u.last_name) AS customer, b.id AS barber_id, s.name AS service, a.appointment_date, a.appointment_time, a.status FROM appointments a JOIN users u ON a.user_id = u.id JOIN barbers b ON a.barber_id = b.id JOIN services s ON a.service_id = s.id ORDER BY a.appointment_date DESC, a.appointment_time DESC");
 ?>
 <!DOCTYPE html>
 <html lang="en">

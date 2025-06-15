@@ -69,7 +69,7 @@ function getAppointmentsForDate($date) {
         SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, 
                a.appointment_time, a.status, a.notes, a.created_at,
                s.name as service_name, s.price,
-               u.username as customer_name
+               CONCAT(u.first_name, ' ', u.last_name) as customer_name
         FROM appointments a
         JOIN services s ON a.service_id = s.id
         JOIN users u ON a.user_id = u.id

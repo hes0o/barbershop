@@ -7,14 +7,15 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
+    $first_name = trim($_POST['first_name'] ?? '');
+    $last_name = trim($_POST['last_name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     $phone = trim($_POST['phone'] ?? '');
 
     // Validate input
-    if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+    if (empty($first_name) || empty($last_name) || empty($email) || empty($password) || empty($confirm_password)) {
         $error = 'All fields are required';
     } elseif ($password !== $confirm_password) {
         $error = 'Passwords do not match';
@@ -26,14 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db = new Database();
             
-            // Check if username or email already exists
-            if ($db->getUserByUsername($username)) {
-                $error = 'Username already exists';
-            } elseif ($db->getUserByEmail($email)) {
+            // Check if email already exists
+            if ($db->getUserByEmail($email)) {
                 $error = 'Email already exists';
             } else {
                 // Create user
-                if ($db->createUser($username, $email, $password, 'customer', $phone)) {
+                if ($db->createUser($first_name, $last_name, $email, $password, 'customer', $phone)) {
                     $_SESSION['success_message'] = 'Registration successful! You can now login.';
                     header('Location: login.php');
                     exit;
@@ -86,13 +85,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
             
             <form method="POST" action="" class="needs-validation" novalidate>
-                <div class="form-floating">
-                    <input type="text" class="form-control" id="username" name="username" 
-                           placeholder="Username" required 
-                           value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
-                    <label for="username">Username</label>
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="first_name" name="first_name"
+                           placeholder="First Name" required
+                           value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>">
+                    <label for="first_name">First Name</label>
                 </div>
-
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="last_name" name="last_name"
+                           placeholder="Last Name" required
+                           value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>">
+                    <label for="last_name">Last Name</label>
+                </div>
                 <div class="form-floating">
                     <input type="email" class="form-control" id="email" name="email" 
                            placeholder="Email" required

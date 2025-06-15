@@ -116,15 +116,20 @@ try {
     $schedule_count = $result->fetch_assoc()['schedule_count'];
 
     // Get active barbers details
-    $result = $conn->query("
-        SELECT b.id, b.status, u.username 
-        FROM barbers b 
-        JOIN users u ON b.user_id = u.id 
-        WHERE b.status = 'active'
+    $stmt = $conn->prepare("
+        SELECT b.id, b.status, CONCAT(u.first_name, ' ', u.last_name) as barber_name
+        FROM barbers b
+        JOIN users u ON b.user_id = u.id
+        WHERE b.id = ?
     ");
     $barbers = [];
-    while ($row = $result->fetch_assoc()) {
-        $barbers[] = $row;
+    for ($i = 1; $i <= $barber_count; $i++) {
+        $stmt->bind_param('i', $i);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($row = $result->fetch_assoc()) {
+            $barbers[] = $row;
+        }
     }
 
     echo "Active Barbers: " . $barber_count . "\n";

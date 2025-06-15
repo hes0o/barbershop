@@ -47,7 +47,7 @@ require_once '../includes/header.php';
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100">
                         <div class="card-body">
-                            <h5 class="card-title"><?php echo htmlspecialchars($customer['username']); ?></h5>
+                            <h5 class="card-title"><?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?></h5>
                             <p class="card-text">
                                 <i class="fas fa-envelope me-2"></i><?php echo htmlspecialchars($customer['email']); ?><br>
                                 <i class="fas fa-phone me-2"></i><?php echo htmlspecialchars($customer['phone'] ?? 'Not provided'); ?>

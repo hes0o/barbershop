@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = "No barbers available at this time.";
                     error_log("No barbers found");
                 } else {
-                    error_log("Found barber - ID: {$barber['id']}, Name: {$barber['username']}");
+                    error_log("Found barber - ID: {$barber['id']}, Name: {$barber['first_name']} {$barber['last_name']}");
                     
                     // Check if time slot is still available
                     if ($db->isTimeSlotAvailable($barber['id'], $date, $time, $service['duration'])) {

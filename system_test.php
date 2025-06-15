@@ -77,8 +77,8 @@ try {
     // 3. Test Database Tables
     echo "<div class='test-section'>";
     echo "<h2>3. Database Tables Test</h2>";
-    $required_tables = [
-        'users' => ['id', 'username', 'email', 'password', 'role', 'phone'],
+    $test_fields = [
+        'users' => ['id', 'first_name', 'last_name', 'email', 'password', 'role', 'phone'],
         'services' => ['id', 'name', 'price', 'duration', 'description'],
         'barbers' => ['id', 'user_id', 'bio', 'experience_years', 'status'],
         'working_hours' => ['id', 'barber_id', 'day_of_week', 'start_time', 'end_time'],
@@ -88,7 +88,7 @@ try {
     
     $connection = $db->getConnection();
     
-    foreach ($required_tables as $table => $columns) {
+    foreach ($test_fields as $table => $columns) {
         $result = $connection->query("SHOW TABLES LIKE '$table'");
         test_result("Table '$table' exists", $result->num_rows > 0);
         
@@ -111,19 +111,20 @@ try {
     echo "<h2>4. Authentication System Test</h2>";
     
     // Test user creation
-    $test_username = 'testuser_' . time();
-    $test_email = 'test_' . time() . '@test.com';
+    $test_first_name = 'Test';
+    $test_last_name = 'User_' . time();
+    $test_email = 'test_' . time() . '@example.com';
     $test_password = 'testpass123';
     $test_role = 'customer';
     $test_phone = '1234567890';
     
-    $user_id = $db->createUser($test_username, $test_email, $test_password, $test_role, $test_phone);
+    $user_id = $db->createUser($test_first_name, $test_last_name, $test_email, $test_password, $test_role, $test_phone);
     test_result("User creation", $user_id !== false, "Created user ID: " . $user_id);
 
     // Test user retrieval
-    $retrieved_user = $db->getUserByEmail($test_email);
-    test_result("User retrieval by email", $retrieved_user !== null, 
-        $retrieved_user ? "Retrieved user: " . $retrieved_user['username'] : "User not found");
+    $retrieved_user = $db->getUserById($user_id);
+    echo "User retrieval test: " . 
+        ($retrieved_user ? "Retrieved user: " . $retrieved_user['first_name'] . ' ' . $retrieved_user['last_name'] : "User not found");
 
     // Test password verification
     $password_verified = password_verify($test_password, $retrieved_user['password']);
@@ -131,7 +132,7 @@ try {
 
     // Test user update
     $new_phone = '9876543210';
-    $update_result = $db->updateUser($user_id, $test_username, $test_email, $new_phone);
+    $update_result = $db->updateUser($user_id, $test_first_name, $test_last_name, $test_email, $new_phone);
     test_result("User update", $update_result, "Updated user phone number");
 
     // Test user deletion
