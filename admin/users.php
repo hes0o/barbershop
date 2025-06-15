@@ -343,11 +343,11 @@ $role_stmt->close();
     <div class="modal fade" id="editUserModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-info text-white">
                     <h5 class="modal-title">Edit User</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST">
+                <form method="POST" id="editUserForm">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="edit">
                         <input type="hidden" name="id" id="editUserId">
@@ -433,6 +433,21 @@ $role_stmt->close();
             document.getElementById('editRole').value = user.role;
             new bootstrap.Modal(document.getElementById('editUserModal')).show();
         }
+
+        // Prevent submitting edit form without a valid id
+        document.addEventListener('DOMContentLoaded', function() {
+            var editUserForm = document.getElementById('editUserForm');
+            if (editUserForm) {
+                editUserForm.addEventListener('submit', function(e) {
+                    var id = document.getElementById('editUserId').value;
+                    if (!id || isNaN(id)) {
+                        e.preventDefault();
+                        alert('Error: User ID is missing. Please try again.');
+                        return false;
+                    }
+                });
+            }
+        });
 
         function deleteUser(userId) {
             if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
