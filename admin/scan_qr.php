@@ -64,47 +64,52 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-    // Initialize QR Code Scanner (identical to test_qr_system.php)
+    // Initialize QR Code Scanner with both success and error callbacks
     const html5QrcodeScanner = new Html5QrcodeScanner(
         "reader", { fps: 10, qrbox: 250 });
 
-    html5QrcodeScanner.render((decodedText) => {
-        // Handle the scanned code
-        fetch('../test_qr_system.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `scan_qr=1&qr_data=${encodeURIComponent(decodedText)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            const resultDiv = document.getElementById('scan-result');
-            if (data.success) {
-                resultDiv.innerHTML = `
-                    <div class="alert alert-success">
-                        <h5>Appointment Completed!</h5>
-                        <p>User ID: ${data.appointment.user_id}</p>
-                        <p>Appointment ID: ${data.appointment.id}</p>
-                        <p>Date: ${data.appointment.appointment_date}</p>
-                        <p>Time: ${data.appointment.appointment_time}</p>
-                    </div>`;
-            } else {
-                resultDiv.innerHTML = `
+    html5QrcodeScanner.render(
+        function onScanSuccess(decodedText, decodedResult) {
+            // Handle the scanned code
+            fetch('../test_qr_system.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `scan_qr=1&qr_data=${encodeURIComponent(decodedText)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('scan-result');
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5>Appointment Completed!</h5>
+                            <p>User ID: ${data.appointment.user_id}</p>
+                            <p>Appointment ID: ${data.appointment.id}</p>
+                            <p>Date: ${data.appointment.appointment_date}</p>
+                            <p>Time: ${data.appointment.appointment_time}</p>
+                        </div>`;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5>Error</h5>
+                            <p>${data.message}</p>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('scan-result').innerHTML = `
                     <div class="alert alert-danger">
                         <h5>Error</h5>
-                        <p>${data.message}</p>
+                        <p>Failed to process QR code: ${error.message}</p>
                     </div>`;
-            }
-        })
-        .catch(error => {
-            document.getElementById('scan-result').innerHTML = `
-                <div class="alert alert-danger">
-                    <h5>Error</h5>
-                    <p>Failed to process QR code: ${error.message}</p>
-                </div>`;
-        });
-    });
+            });
+        },
+        function onScanError(errorMessage) {
+            // Optionally handle scan errors or ignore
+        }
+    );
     </script>
 </body>
 </html> 
