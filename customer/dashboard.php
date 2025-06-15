@@ -405,20 +405,19 @@ if ($barber && $selected_date) {
         <div class="text-center mb-4">
             <span class="logo" style="font-size:3rem;font-weight:700;color:#3498db;">BladeX</span>
         </div>
-        <?php if ($message): ?>
+        <?php if (
+            $message): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <?php echo $message; ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
-        
         <?php if ($error): ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <?php echo htmlspecialchars($error); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
-
         <!-- Welcome Section -->
         <div class="row mb-4">
             <div class="col-md-12">
@@ -437,62 +436,6 @@ if ($barber && $selected_date) {
                 </div>
             </div>
         </div>
-
-        <!-- Appointments History -->
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <h3 class="section-title">Appointments History</h3>
-                <?php if (empty($appointments)): ?>
-                    <div class="alert alert-info">
-                        No appointments found. Book your first service now!
-                    </div>
-                <?php else: ?>
-                    <div class="row">
-                        <?php foreach ($appointments as $appointment): ?>
-                            <div class="col-md-6 mb-3">
-                                <div class="card appointment-card status-<?php echo getStatusColor($appointment['status']); ?>">
-                                    <div class="card-body p-4">
-                                        <span class="badge bg-<?php echo getStatusColor($appointment['status']); ?> status-badge">
-                                            <?php echo ucfirst($appointment['status']); ?>
-                                        </span>
-                                        <h5 class="card-title mb-3"><?php echo htmlspecialchars($appointment['service_name']); ?></h5>
-                                        <p class="card-text">
-                                            <i class="fas fa-calendar me-2 text-primary"></i>
-                                            <?php echo date('F j, Y', strtotime($appointment['date'])); ?>
-                                            <br>
-                                            <i class="fas fa-clock me-2 text-primary"></i>
-                                            <?php echo date('g:i A', strtotime($appointment['time'])); ?>
-                                            <br>
-                                            <i class="fas fa-user me-2 text-primary"></i>
-                                            Barber: <?php echo htmlspecialchars($appointment['barber_name']); ?>
-                                            <br>
-                                            <i class="fas fa-dollar-sign me-2 text-primary"></i>
-                                            Price: $<?php echo number_format($appointment['price'], 2); ?>
-                                            <?php if ($appointment['status'] === 'cancelled' && !empty($appointment['notes'])): ?>
-                                            <br>
-                                            <i class="fas fa-info-circle me-2 text-danger"></i>
-                                            <span class="text-danger">Cancellation Note: <?php echo htmlspecialchars($appointment['notes']); ?></span>
-                                            <?php endif; ?>
-                                        </p>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            <?php if ($appointment['status'] === 'pending'): ?>
-                                                <button class="btn btn-danger btn-sm" onclick="cancelAppointment(<?php echo $appointment['id']; ?>)">
-                                                    Cancel Appointment
-                                                </button>
-                                            <?php endif; ?>
-                                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="showQrCode('<?php echo $_SESSION['user_id']; ?>','<?php echo $appointment['id']; ?>')">
-                                                <i class="fas fa-qrcode"></i> Show QR Code
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
         <!-- Modern & Beautiful Booking Form -->
         <?php if (empty($available_days)): ?>
             <div class="alert alert-warning text-center mb-4">
@@ -562,6 +505,60 @@ if ($barber && $selected_date) {
             </div>
         </div>
         <?php endif; ?>
+        <!-- Appointments History -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h3 class="section-title">Appointments History</h3>
+                <?php if (empty($appointments)): ?>
+                    <div class="alert alert-info">
+                        No appointments found. Book your first service now!
+                    </div>
+                <?php else: ?>
+                    <div class="row">
+                        <?php foreach ($appointments as $appointment): ?>
+                            <div class="col-md-6 mb-3">
+                                <div class="card appointment-card status-<?php echo getStatusColor($appointment['status']); ?>">
+                                    <div class="card-body p-4">
+                                        <span class="badge bg-<?php echo getStatusColor($appointment['status']); ?> status-badge">
+                                            <?php echo ucfirst($appointment['status']); ?>
+                                        </span>
+                                        <h5 class="card-title mb-3"><?php echo htmlspecialchars($appointment['service_name']); ?></h5>
+                                        <p class="card-text">
+                                            <i class="fas fa-calendar me-2 text-primary"></i>
+                                            <?php echo date('F j, Y', strtotime($appointment['date'])); ?>
+                                            <br>
+                                            <i class="fas fa-clock me-2 text-primary"></i>
+                                            <?php echo date('g:i A', strtotime($appointment['time'])); ?>
+                                            <br>
+                                            <i class="fas fa-user me-2 text-primary"></i>
+                                            Barber: <?php echo htmlspecialchars($appointment['barber_name']); ?>
+                                            <br>
+                                            <i class="fas fa-dollar-sign me-2 text-primary"></i>
+                                            Price: $<?php echo number_format($appointment['price'], 2); ?>
+                                            <?php if ($appointment['status'] === 'cancelled' && !empty($appointment['notes'])): ?>
+                                            <br>
+                                            <i class="fas fa-info-circle me-2 text-danger"></i>
+                                            <span class="text-danger">Cancellation Note: <?php echo htmlspecialchars($appointment['notes']); ?></span>
+                                            <?php endif; ?>
+                                        </p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <?php if ($appointment['status'] === 'pending'): ?>
+                                                <button class="btn btn-danger btn-sm" onclick="cancelAppointment(<?php echo $appointment['id']; ?>)">
+                                                    Cancel Appointment
+                                                </button>
+                                            <?php endif; ?>
+                                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="showQrCode('<?php echo $_SESSION['user_id']; ?>','<?php echo $appointment['id']; ?>')">
+                                                <i class="fas fa-qrcode"></i> Show QR Code
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 
     <!-- QR Code Modal -->
