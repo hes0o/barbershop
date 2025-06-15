@@ -56,8 +56,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-    // Initialize QR Code Scanner
+    // Initialize QR Code Scanner (match test_qr_system.php)
     const html5QrcodeScanner = new Html5QrcodeScanner(
         "reader", { fps: 10, qrbox: 250 });
 
@@ -75,7 +76,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
             const resultDiv = document.getElementById('scan-result');
             if (data.success) {
                 resultDiv.innerHTML = `
-                    <div class=\"alert alert-success\">
+                    <div class="alert alert-success">
                         <h5>Appointment Completed!</h5>
                         <p>User ID: ${data.appointment.user_id}</p>
                         <p>Appointment ID: ${data.appointment.id}</p>
@@ -84,7 +85,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
                     </div>`;
             } else {
                 resultDiv.innerHTML = `
-                    <div class=\"alert alert-danger\">
+                    <div class="alert alert-danger">
                         <h5>Error</h5>
                         <p>${data.message}</p>
                     </div>`;
@@ -92,7 +93,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
         })
         .catch(error => {
             document.getElementById('scan-result').innerHTML = `
-                <div class=\"alert alert-danger\">
+                <div class="alert alert-danger">
                     <h5>Error</h5>
                     <p>Failed to process QR code: ${error.message}</p>
                 </div>`;
