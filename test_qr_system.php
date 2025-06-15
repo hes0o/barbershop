@@ -91,65 +91,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['scan_qr'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR System Test</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { background: #f8fafc; font-family: 'Poppins', sans-serif; }
         .qr-img { border: 1px solid #ddd; padding: 8px; background: #fff; border-radius: 8px; }
-        #reader { width: 100%; max-width: 600px; margin: 0 auto; }
+        #reader { width: 100%; max-width: 400px; margin: 0 auto; }
         .scan-result { margin-top: 20px; }
+        .card { box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-radius: 16px; }
+        .card-body { padding: 2rem; }
+        .form-label { font-weight: 500; }
+        .btn { font-size: 1.1rem; padding: 0.75rem 1.5rem; }
+        @media (max-width: 991.98px) {
+            .card-body { padding: 1rem; }
+        }
+        @media (max-width: 767.98px) {
+            .row.flex-lg-row { flex-direction: column !important; }
+            .col-md-6 { width: 100%; max-width: 100%; }
+            .card { margin-bottom: 1.5rem; }
+        }
     </style>
 </head>
 <body>
-<div class="container py-5">
-    <h1 class="mb-4">QR System Test</h1>
-    
-    <!-- QR Code Generation -->
-    <div class="row mb-5">
+<div class="container py-4">
+    <div class="text-center mb-4">
+        <h1 class="fw-bold mb-2"><i class="fas fa-qrcode text-primary"></i> Scan & Generate QR Code</h1>
+        <p class="lead">Easily generate and scan appointment QR codes for fast check-in and completion.</p>
+    </div>
+    <div class="row flex-lg-row g-4 mb-4">
+        <!-- QR Code Generation -->
         <div class="col-md-6">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-body">
-                    <h4>Generate Appointment QR Code</h4>
+                    <h4 class="mb-3"><i class="fas fa-plus-circle text-success"></i> Generate Appointment QR Code</h4>
                     <form method="POST" class="mb-3">
                         <div class="mb-3">
                             <label class="form-label">Appointment ID</label>
-                            <input type="text" name="appointment_id" class="form-control" placeholder="Enter appointment ID">
+                            <input type="text" name="appointment_id" class="form-control form-control-lg" placeholder="Enter appointment ID" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Generate QR Code</button>
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-qrcode"></i> Generate QR Code</button>
                     </form>
                     <?php if ($qr_url): ?>
-                    <div class="mt-3">
-                        <h5>Generated QR Code</h5>
-                        <img src="<?php echo $qr_url; ?>" alt="Appointment QR Code" class="qr-img">
-                        <div class="mt-2"><code><?php echo htmlspecialchars($qr_url); ?></code></div>
+                    <div class="mt-3 text-center">
+                        <h5 class="mb-2">Generated QR Code</h5>
+                        <img src="<?php echo $qr_url; ?>" alt="Appointment QR Code" class="qr-img mb-2" style="max-width: 100%; height: auto;">
+                        <div class="small text-muted"><code><?php echo htmlspecialchars($qr_url); ?></code></div>
                     </div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
-
         <!-- QR Code Scanner -->
         <div class="col-md-6">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-body">
-                    <h4>Scan QR Code</h4>
+                    <h4 class="mb-3"><i class="fas fa-camera text-info"></i> Scan QR Code</h4>
                     <div id="reader"></div>
                     <div id="scan-result" class="scan-result"></div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="alert alert-info">
+    <div class="alert alert-info mt-3">
         <b>How it works:</b><br>
-        1. Enter an appointment ID to generate a QR code<br>
-        2. The QR code contains user ID, appointment ID, date, and time<br>
-        3. Use the scanner to scan the QR code<br>
-        4. The system will automatically mark the appointment as completed
+        <ol class="mb-0">
+            <li>Enter an appointment ID to generate a QR code.</li>
+            <li>The QR code contains user ID, appointment ID, date, and time.</li>
+            <li>Use the scanner to scan the QR code.</li>
+            <li>The system will automatically mark the appointment as completed.</li>
+        </ol>
     </div>
 </div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
 <script>
 // Initialize QR Code Scanner
 const html5QrcodeScanner = new Html5QrcodeScanner(
