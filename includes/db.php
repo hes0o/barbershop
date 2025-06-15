@@ -479,15 +479,24 @@ class Database {
     }
     
     public function getAppointmentById($appointment_id) {
-        $stmt = $this->conn->prepare("SELECT id, user_id, barber_id, service_id, appointment_date, appointment_time, status, notes, created_at FROM appointments WHERE id = ?");
-        if (!$stmt) {
-            throw new Exception("Error preparing statement: " . $this->conn->error);
-        }
+        $stmt = $this->conn->prepare("
+            SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, 
+                   a.appointment_time, a.status, a.notes, a.created_at,
+                   u.first_name, u.last_name, s.name as service_name 
+            FROM appointments a
+            JOIN users u ON a.user_id = u.id
+            JOIN services s ON a.service_id = s.id
+            WHERE a.id = ?
+        ");
         $stmt->bind_param("i", $appointment_id);
-        if (!$stmt->execute()) {
-            throw new Exception("Error executing statement: " . $stmt->error);
-        }
-        $stmt->bind_result($id, $user_id, $barber_id, $service_id, $appointment_date, $appointment_time, $status, $notes, $created_at);
+        $stmt->execute();
+        
+        $stmt->bind_result(
+            $id, $user_id, $barber_id, $service_id, $appointment_date,
+            $appointment_time, $status, $notes, $created_at,
+            $first_name, $last_name, $service_name
+        );
+        
         if ($stmt->fetch()) {
             $appointment = [
                 'id' => $id,
@@ -498,7 +507,10 @@ class Database {
                 'appointment_time' => $appointment_time,
                 'status' => $status,
                 'notes' => $notes,
-                'created_at' => $created_at
+                'created_at' => $created_at,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'service_name' => $service_name
             ];
             $stmt->close();
             return $appointment;
@@ -507,26 +519,14 @@ class Database {
         return false;
     }
     
-    public function updateAppointmentStatus($appointment_id, $status, $notes = null) {
-        error_log("Updating appointment status: ID={$appointment_id}, Status={$status}, Notes={$notes}");
-        $sql = "UPDATE appointments SET status = ?, notes = ? WHERE id = ?";
-        $stmt = $this->conn->prepare($sql);
-        if (!$stmt) {
-            error_log("Error preparing update statement: " . $this->conn->error);
-            return false;
-        }
-        $stmt->bind_param("ssi", $status, $notes, $appointment_id);
-        $result = $stmt->execute();
-        if (!$result) {
-            error_log("Error executing update statement: " . $stmt->error);
-            return false;
-        }
-        error_log("Appointment status updated successfully");
-
-        // Log the activity
-        $this->logActivity($_SESSION['user_id'], 'update_appointment', "Updated appointment ID: $appointment_id status to: $status" . ($notes ? " with notes: $notes" : ""));
-
-        return true;
+    public function updateAppointmentStatus($appointment_id, $status) {
+        $stmt = $this->conn->prepare("
+            UPDATE appointments 
+            SET status = ? 
+            WHERE id = ?
+        ");
+        $stmt->bind_param("si", $status, $appointment_id);
+        return $stmt->execute();
     }
     
     // Barber Availability Operations
