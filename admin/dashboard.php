@@ -83,7 +83,7 @@ $total_services = count($db->getAllServices());
                 <li><a href="appointments.php" class="nav-link"><i class="fas fa-calendar-alt"></i> Appointments</a></li>
                 <li><a href="services.php" class="nav-link"><i class="fas fa-scissors"></i> Services</a></li>
                 <li><a href="activity_log.php" class="nav-link"><i class="fas fa-history"></i> Activity Log</a></li>
-                <li><a href="../test_qr_system.php" class="nav-link"><i class="fas fa-qrcode"></i> Scan QR Code</a></li>
+                <li><a href="scan_qr.php" class="nav-link"><i class="fas fa-qrcode"></i> Scan QR Code</a></li>
             </ul>
             <hr>
             <a href="../logout.php" class="btn btn-danger w-100 mt-auto"><i class="fas fa-sign-out-alt"></i> Logout</a>
