@@ -189,6 +189,9 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <li class="nav-item">
                                     <a class="nav-link" href="<?php echo $base_url; ?>/admin/customers.php">Customers</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="<?php echo $base_url; ?>/admin/test_email.php">Email Test</a>
+                                </li>
                             <?php else: ?>
                                 <li class="nav-item">
                                     <a class="nav-link" href="<?php echo $base_url; ?>/book.php">Book Appointment</a>
