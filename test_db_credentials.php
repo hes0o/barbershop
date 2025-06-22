@@ -7,7 +7,7 @@
 
 echo "<h2>🔍 Database Credentials Test</h2>";
 
-// Common database credential variations to test
+// More comprehensive database credential variations to test
 $testCredentials = [
     [
         'name' => 'Current Config',
@@ -17,25 +17,60 @@ $testCredentials = [
         'db' => 'shawacom_barber'
     ],
     [
-        'name' => 'Alternative 1',
-        'host' => 'localhost',
-        'user' => 'shawacom_barber',
-        'pass' => 'Hes0o@981',
-        'db' => 'customprojects_barber'
-    ],
-    [
-        'name' => 'Alternative 2',
+        'name' => 'Domain-based 1',
         'host' => 'localhost',
         'user' => 'customprojects_barber',
         'pass' => 'Hes0o@981',
         'db' => 'customprojects_barber'
     ],
     [
-        'name' => 'Alternative 3',
+        'name' => 'Domain-based 2',
         'host' => 'localhost',
-        'user' => 'root',
-        'pass' => '',
-        'db' => 'shawacom_barber'
+        'user' => 'customprojects_barbershop',
+        'pass' => 'Hes0o@981',
+        'db' => 'customprojects_barbershop'
+    ],
+    [
+        'name' => 'Domain-based 3',
+        'host' => 'localhost',
+        'user' => 'shawacom_barbershop',
+        'pass' => 'Hes0o@981',
+        'db' => 'shawacom_barbershop'
+    ],
+    [
+        'name' => 'Alternative Password 1',
+        'host' => 'localhost',
+        'user' => 'customprojects_barber',
+        'pass' => 'customprojects',
+        'db' => 'customprojects_barber'
+    ],
+    [
+        'name' => 'Alternative Password 2',
+        'host' => 'localhost',
+        'user' => 'customprojects_barber',
+        'pass' => 'barber123',
+        'db' => 'customprojects_barber'
+    ],
+    [
+        'name' => 'Alternative Password 3',
+        'host' => 'localhost',
+        'user' => 'customprojects_barber',
+        'pass' => 'password',
+        'db' => 'customprojects_barber'
+    ],
+    [
+        'name' => 'Alternative Password 4',
+        'host' => 'localhost',
+        'user' => 'customprojects_barber',
+        'pass' => 'admin',
+        'db' => 'customprojects_barber'
+    ],
+    [
+        'name' => 'Alternative Password 5',
+        'host' => 'localhost',
+        'user' => 'customprojects_barber',
+        'pass' => '123456',
+        'db' => 'customprojects_barber'
     ]
 ];
 
@@ -67,6 +102,17 @@ foreach ($testCredentials as $cred) {
                 if (count($tables) > 0) {
                     echo "<p><strong>Tables:</strong> " . implode(', ', $tables) . "</p>";
                 }
+                
+                // If we found a working connection, show the config update
+                echo "<div style='background: #d4edda; padding: 10px; border-radius: 5px; margin-top: 10px;'>";
+                echo "<h5>🎉 SUCCESS! Update your config.php with:</h5>";
+                echo "<pre style='background: #f8f9fa; padding: 10px; border-radius: 3px;'>";
+                echo "define('DB_HOST', '{$cred['host']}');\n";
+                echo "define('DB_USER', '{$cred['user']}');\n";
+                echo "define('DB_PASS', '{$cred['pass']}');\n";
+                echo "define('DB_NAME', '{$cred['db']}');";
+                echo "</pre>";
+                echo "</div>";
             } else {
                 echo "<p style='color: orange;'>⚠ Connected but can't query tables</p>";
             }
@@ -113,6 +159,16 @@ echo "<li>Delete this test script for security</li>";
 echo "<li>Test your barber dashboard again</li>";
 echo "</ul>";
 echo "</div>";
+
+echo "<div style='background: #f8d7da; padding: 15px; border-radius: 5px; margin-top: 20px;'>";
+echo "<h4>🚨 If None of These Work:</h4>";
+echo "<p>You'll need to:</p>";
+echo "<ol>";
+echo "<li>Contact your hosting provider for database credentials</li>";
+echo "<li>Check if you need to create a new database</li>";
+echo "<li>Verify your hosting plan includes MySQL databases</li>";
+echo "</ol>";
+echo "</div>";
 ?>
 
 <style>
@@ -120,5 +176,7 @@ body { font-family: Arial, sans-serif; margin: 20px; }
 h2 { color: #333; }
 h3 { color: #555; margin-top: 20px; }
 h4 { color: #666; margin-top: 15px; }
+h5 { color: #777; margin-top: 10px; }
 hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+pre { font-family: monospace; font-size: 12px; }
 </style> 
