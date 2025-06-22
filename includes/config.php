@@ -2,12 +2,13 @@
 // Database configuration for live hosting
 define('DB_HOST', 'localhost');
 define('DB_USER', 'shawacom_hassan'); // Your actual database username
-define('DB_PASS', 'Hes0o@981Chawa981'); // Your actual database password
+define('DB_PASS', 'Hassan@Chawa981'); // Your actual database password
 define('DB_NAME', 'shawacom_Barber'); // Your actual database name
 
 // Application configuration
 define('SITE_NAME', 'BladeX Barbershop');
 define('SITE_URL', 'https://customprojects.shawa.com.tr/barbershop');
+define('BASE_URL', ''); // Empty string for relative paths
 define('ADMIN_EMAIL', 'bladex@customprojects.shawa.com.tr'); // Your admin email
 
 // Session configuration
