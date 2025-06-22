@@ -1,35 +1,47 @@
 <?php
 echo "<h2>🔍 Finding Your Database Credentials</h2>";
+echo "<p><strong>Username:</strong> shawacom_hassan (confirmed)</p>";
 
-// Common credential patterns to test
+// Test combinations with the known username
 $test_combinations = [
-    // Original credentials
+    // Known username with different passwords and database names
     ['localhost', 'shawacom_hassan', 'Hassan@Chawa981', 'shawacom_Barber'],
     ['localhost', 'shawacom_hassan', 'Hassan@Chawa981', 'shawacom_barber'],
+    ['localhost', 'shawacom_hassan', 'Hassan@Chawa981', 'shawacom_barbershop'],
     
-    // Alternative passwords
     ['localhost', 'shawacom_hassan', 'Hes0o@981', 'shawacom_Barber'],
     ['localhost', 'shawacom_hassan', 'Hes0o@981', 'shawacom_barber'],
+    ['localhost', 'shawacom_hassan', 'Hes0o@981', 'shawacom_barbershop'],
+    
     ['localhost', 'shawacom_hassan', 'Hassan@981', 'shawacom_Barber'],
     ['localhost', 'shawacom_hassan', 'Hassan@981', 'shawacom_barber'],
+    ['localhost', 'shawacom_hassan', 'Hassan@981', 'shawacom_barbershop'],
     
-    // Different username patterns
-    ['localhost', 'shawacom_barber', 'Hassan@Chawa981', 'shawacom_Barber'],
-    ['localhost', 'shawacom_barber', 'Hassan@Chawa981', 'shawacom_barber'],
-    ['localhost', 'shawacom_barber', 'Hes0o@981', 'shawacom_Barber'],
-    ['localhost', 'shawacom_barber', 'Hes0o@981', 'shawacom_barber'],
+    ['localhost', 'shawacom_hassan', 'Chawa981', 'shawacom_Barber'],
+    ['localhost', 'shawacom_hassan', 'Chawa981', 'shawacom_barber'],
+    ['localhost', 'shawacom_hassan', 'Chawa981', 'shawacom_barbershop'],
     
-    // Domain-based patterns
-    ['localhost', 'customprojects_barber', 'Hassan@Chawa981', 'customprojects_barber'],
-    ['localhost', 'customprojects_barber', 'Hes0o@981', 'customprojects_barber'],
-    ['localhost', 'customprojects_barbershop', 'Hassan@Chawa981', 'customprojects_barbershop'],
-    ['localhost', 'customprojects_barbershop', 'Hes0o@981', 'customprojects_barbershop'],
+    ['localhost', 'shawacom_hassan', 'Hassan981', 'shawacom_Barber'],
+    ['localhost', 'shawacom_hassan', 'Hassan981', 'shawacom_barber'],
+    ['localhost', 'shawacom_hassan', 'Hassan981', 'shawacom_barbershop'],
     
-    // Simple patterns
-    ['localhost', 'barber', 'Hassan@Chawa981', 'barber'],
-    ['localhost', 'barber', 'Hes0o@981', 'barber'],
-    ['localhost', 'barbershop', 'Hassan@Chawa981', 'barbershop'],
-    ['localhost', 'barbershop', 'Hes0o@981', 'barbershop'],
+    // Try with domain-based database names
+    ['localhost', 'shawacom_hassan', 'Hassan@Chawa981', 'customprojects_barber'],
+    ['localhost', 'shawacom_hassan', 'Hes0o@981', 'customprojects_barber'],
+    ['localhost', 'shawacom_hassan', 'Hassan@981', 'customprojects_barber'],
+    
+    ['localhost', 'shawacom_hassan', 'Hassan@Chawa981', 'customprojects_barbershop'],
+    ['localhost', 'shawacom_hassan', 'Hes0o@981', 'customprojects_barbershop'],
+    ['localhost', 'shawacom_hassan', 'Hassan@981', 'customprojects_barbershop'],
+    
+    // Simple database names
+    ['localhost', 'shawacom_hassan', 'Hassan@Chawa981', 'barber'],
+    ['localhost', 'shawacom_hassan', 'Hes0o@981', 'barber'],
+    ['localhost', 'shawacom_hassan', 'Hassan@981', 'barber'],
+    
+    ['localhost', 'shawacom_hassan', 'Hassan@Chawa981', 'barbershop'],
+    ['localhost', 'shawacom_hassan', 'Hes0o@981', 'barbershop'],
+    ['localhost', 'shawacom_hassan', 'Hassan@981', 'barbershop'],
 ];
 
 $found_credentials = false;
@@ -82,11 +94,12 @@ foreach ($test_combinations as $index => $combo) {
 if (!$found_credentials) {
     echo "<br><div style='background: #f8d7da; padding: 10px; border: 1px solid #f5c6cb; border-radius: 5px;'>";
     echo "<strong>❌ No working credentials found</strong><br>";
-    echo "You'll need to:<br>";
+    echo "Since we know the username is 'shawacom_hassan', you need to:<br>";
     echo "1. Log into your hosting control panel (cPanel, Plesk, etc.)<br>";
     echo "2. Go to 'MySQL Databases' or 'Databases' section<br>";
-    echo "3. Check your database name, username, and password<br>";
-    echo "4. Update your includes/config.php with the correct credentials<br>";
+    echo "3. Find the password for user 'shawacom_hassan'<br>";
+    echo "4. Find the correct database name<br>";
+    echo "5. Update your includes/config.php with the correct password and database name<br>";
     echo "</div>";
 }
 ?> 
