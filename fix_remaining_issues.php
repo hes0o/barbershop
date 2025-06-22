@@ -2,7 +2,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h2>🔧 Fixing All Config Paths</h2>";
+echo "<h2>🔧 Fixing Remaining Issues</h2>";
 
 // Function to scan directory recursively
 function scanDirectory($dir, $baseDir = '') {
@@ -43,7 +43,7 @@ foreach ($phpFiles as $file) {
     $originalContent = $content;
     $changes = [];
     
-    // Fix old config.php references
+    // Fix old config.php references - more comprehensive patterns
     $patterns = [
         // Fix require_once __DIR__ . '/../config.php'
         [
@@ -89,6 +89,36 @@ foreach ($phpFiles as $file) {
         [
             "include 'config.php'",
             "include __DIR__ . '/includes/config.php'"
+        ],
+        // Fix require_once '../config.php'
+        [
+            "require_once '../config.php'",
+            "require_once '../includes/config.php'"
+        ],
+        // Fix require '../config.php'
+        [
+            "require '../config.php'",
+            "require '../includes/config.php'"
+        ],
+        // Fix include '../config.php'
+        [
+            "include '../config.php'",
+            "include '../includes/config.php'"
+        ],
+        // Fix require_once './config.php'
+        [
+            "require_once './config.php'",
+            "require_once './includes/config.php'"
+        ],
+        // Fix require './config.php'
+        [
+            "require './config.php'",
+            "require './includes/config.php'"
+        ],
+        // Fix include './config.php'
+        [
+            "include './config.php'",
+            "include './includes/config.php'"
         ]
     ];
     
@@ -135,11 +165,41 @@ if (!empty($errors)) {
     echo "</div>";
 }
 
+// Now let's also check if BASE_URL is properly defined in config.php
+echo "<h3>🔍 Checking BASE_URL in config.php</h3>";
+$configFile = __DIR__ . '/includes/config.php';
+if (file_exists($configFile)) {
+    $configContent = file_get_contents($configFile);
+    if (strpos($configContent, "define('BASE_URL'") !== false) {
+        echo "✅ BASE_URL is defined in config.php<br>";
+    } else {
+        echo "❌ BASE_URL is NOT defined in config.php<br>";
+        echo "Adding BASE_URL definition...<br>";
+        
+        // Add BASE_URL definition
+        $configContent = str_replace(
+            "define('SITE_URL', 'https://customprojects.shawa.com.tr/barbershop');",
+            "define('SITE_URL', 'https://customprojects.shawa.com.tr/barbershop');\ndefine('BASE_URL', ''); // Empty string for relative paths",
+            $configContent
+        );
+        
+        if (file_put_contents($configFile, $configContent)) {
+            echo "✅ Added BASE_URL to config.php<br>";
+        } else {
+            echo "❌ Could not update config.php<br>";
+        }
+    }
+} else {
+    echo "❌ config.php not found<br>";
+}
+
 echo "<h4>🔧 Next Steps:</h4>";
 echo "<div style='background: #d1ecf1; padding: 15px; border-radius: 5px;'>";
 echo "1. All config.php paths have been fixed<br>";
-echo "2. BASE_URL has been added to config.php<br>";
-echo "3. Now test your dashboards:<br>";
+echo "2. BASE_URL has been verified/added to config.php<br>";
+echo "3. Now run the scan again to verify fixes:<br>";
+echo "&nbsp;&nbsp;&nbsp;&nbsp;• <a href='scan_all_files.php'>Run Scan Again</a><br>";
+echo "4. Test your dashboards:<br>";
 echo "&nbsp;&nbsp;&nbsp;&nbsp;• <a href='admin/dashboard.php'>Admin Dashboard</a><br>";
 echo "&nbsp;&nbsp;&nbsp;&nbsp;• <a href='barber/dashboard.php'>Barber Dashboard</a><br>";
 echo "&nbsp;&nbsp;&nbsp;&nbsp;• <a href='index.php'>Main Page</a><br>";
