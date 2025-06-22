@@ -8,7 +8,7 @@ ob_start();
 
 try {
     session_start();
-    require_once __DIR__ . '/../config.php';
+    require_once __DIR__ . '/../includes/config.php';
     require_once __DIR__ . '/../includes/db.php';
 
     // Ensure we're sending JSON response

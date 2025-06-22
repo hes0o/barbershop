@@ -1,6 +1,6 @@
 <?php
 // admin/scan_qr.php - Copied from test_qr_system.php for production use
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
 class QRSystem {
