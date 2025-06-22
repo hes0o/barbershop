@@ -2,7 +2,7 @@
 // Database configuration for live hosting
 define('DB_HOST', 'localhost');
 define('DB_USER', 'shawacom_hassan'); // Your actual database username
-define('DB_PASS', 'Hassan@Chawa981'); // Your actual database password
+define('DB_PASS', 'Hes0o@981'); // Your actual database password
 define('DB_NAME', 'shawacom_Barber'); // Your actual database name
 
 // Application configuration
