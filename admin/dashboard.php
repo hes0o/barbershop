@@ -82,6 +82,7 @@ $total_services = count($db->getAllServices());
                 <li><a href="users.php" class="nav-link"><i class="fas fa-users"></i> Users</a></li>
                 <li><a href="appointments.php" class="nav-link"><i class="fas fa-calendar-alt"></i> Appointments</a></li>
                 <li><a href="services.php" class="nav-link"><i class="fas fa-scissors"></i> Services</a></li>
+                <li><a href="email_config.php" class="nav-link"><i class="fas fa-envelope"></i> Email Config</a></li>
                 <li><a href="activity_log.php" class="nav-link"><i class="fas fa-history"></i> Activity Log</a></li>
                 <li><a href="scan_qr.php" class="nav-link"><i class="fas fa-qrcode"></i> Scan QR Code</a></li>
             </ul>

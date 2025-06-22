@@ -1582,5 +1582,150 @@ class Database {
             return ['success' => false, 'message' => 'An error occurred'];
         }
     }
+
+    // Email Configuration Methods
+    public function getEmailConfig($key = null) {
+        try {
+            if ($key) {
+                // Get specific setting
+                $stmt = $this->conn->prepare("SELECT setting_value FROM email_config WHERE setting_key = ?");
+                if (!$stmt) {
+                    error_log("Error preparing getEmailConfig statement: " . $this->conn->error);
+                    return null;
+                }
+                $stmt->bind_param("s", $key);
+                $stmt->execute();
+                $stmt->bind_result($value);
+                if ($stmt->fetch()) {
+                    $stmt->close();
+                    return $value;
+                }
+                $stmt->close();
+                return null;
+            } else {
+                // Get all settings
+                $stmt = $this->conn->prepare("SELECT setting_key, setting_value, description FROM email_config ORDER BY setting_key");
+                if (!$stmt) {
+                    error_log("Error preparing getEmailConfig statement: " . $this->conn->error);
+                    return [];
+                }
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $config = [];
+                while ($row = $result->fetch_assoc()) {
+                    $config[$row['setting_key']] = [
+                        'value' => $row['setting_value'],
+                        'description' => $row['description']
+                    ];
+                }
+                $stmt->close();
+                return $config;
+            }
+        } catch (Exception $e) {
+            error_log("Error in getEmailConfig: " . $e->getMessage());
+            return $key ? null : [];
+        }
+    }
+
+    public function updateEmailConfig($key, $value) {
+        try {
+            $stmt = $this->conn->prepare("UPDATE email_config SET setting_value = ? WHERE setting_key = ?");
+            if (!$stmt) {
+                error_log("Error preparing updateEmailConfig statement: " . $this->conn->error);
+                return ['success' => false, 'message' => 'Database error'];
+            }
+            $stmt->bind_param("ss", $value, $key);
+            $result = $stmt->execute();
+            $stmt->close();
+
+            if ($result) {
+                // Log the activity (only for sensitive fields)
+                if (in_array($key, ['smtp_password'])) {
+                    $this->logActivity($_SESSION['user_id'], 'update_email_config', "Updated email configuration: $key");
+                } else {
+                    $this->logActivity($_SESSION['user_id'], 'update_email_config', "Updated email configuration: $key = $value");
+                }
+                return ['success' => true, 'message' => 'Email configuration updated successfully'];
+            }
+            return ['success' => false, 'message' => 'Failed to update email configuration'];
+        } catch (Exception $e) {
+            error_log("Error in updateEmailConfig: " . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred'];
+        }
+    }
+
+    public function getAllEmailConfig() {
+        try {
+            $stmt = $this->conn->prepare("SELECT setting_key, setting_value, description FROM email_config ORDER BY setting_key");
+            if (!$stmt) {
+                error_log("Error preparing getAllEmailConfig statement: " . $this->conn->error);
+                return [];
+            }
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $config = [];
+            while ($row = $result->fetch_assoc()) {
+                $config[] = [
+                    'key' => $row['setting_key'],
+                    'value' => $row['setting_value'],
+                    'description' => $row['description']
+                ];
+            }
+            $stmt->close();
+            return $config;
+        } catch (Exception $e) {
+            error_log("Error in getAllEmailConfig: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function testEmailConfig() {
+        try {
+            // Get email configuration
+            $config = $this->getEmailConfig();
+            if (empty($config)) {
+                return ['success' => false, 'message' => 'Email configuration not found'];
+            }
+
+            // Extract values
+            $smtp_host = $config['smtp_host']['value'] ?? '';
+            $smtp_port = $config['smtp_port']['value'] ?? '';
+            $smtp_username = $config['smtp_username']['value'] ?? '';
+            $smtp_password = $config['smtp_password']['value'] ?? '';
+            $from_email = $config['from_email']['value'] ?? '';
+            $from_name = $config['from_name']['value'] ?? '';
+
+            if (empty($smtp_host) || empty($smtp_port) || empty($smtp_username) || empty($smtp_password)) {
+                return ['success' => false, 'message' => 'Incomplete email configuration'];
+            }
+
+            // Test connection using PHPMailer
+            require_once __DIR__ . '/../vendor/autoload.php';
+            
+            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host = $smtp_host;
+                $mail->SMTPAuth = true;
+                $mail->Username = $smtp_username;
+                $mail->Password = $smtp_password;
+                $mail->SMTPSecure = $config['smtp_secure']['value'] ?? 'ssl';
+                $mail->Port = $smtp_port;
+
+                // Test connection
+                $mail->smtpConnect();
+                $mail->smtpClose();
+
+                return ['success' => true, 'message' => 'Email configuration test successful'];
+            } catch (Exception $e) {
+                return ['success' => false, 'message' => 'Email configuration test failed: ' . $e->getMessage()];
+            }
+        } catch (Exception $e) {
+            error_log("Error in testEmailConfig: " . $e->getMessage());
+            return ['success' => false, 'message' => 'An error occurred while testing email configuration'];
+        }
+    }
 }
 ?> 
