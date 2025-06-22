@@ -63,6 +63,60 @@ if ($fixed > 0) {
     echo "<p>All files already have the correct config.php paths.</p>";
     echo "</div>";
 }
+
+// Also check and fix admin files
+echo "<hr>";
+echo "<h3>Checking Admin Directory...</h3>";
+
+$adminDir = __DIR__ . '/admin/';
+$adminFiles = glob($adminDir . '*.php');
+$adminFixed = 0;
+
+foreach ($adminFiles as $file) {
+    $filename = basename($file);
+    $content = file_get_contents($file);
+    
+    // Check if file contains the old config path
+    if (strpos($content, "require_once __DIR__ . '/../config.php'") !== false) {
+        // Replace the old path with the new one
+        $newContent = str_replace(
+            "require_once __DIR__ . '/../config.php'",
+            "require_once __DIR__ . '/../includes/config.php'",
+            $content
+        );
+        
+        // Also fix other variations
+        $newContent = str_replace(
+            "require_once '../config.php'",
+            "require_once '../includes/config.php'",
+            $newContent
+        );
+        
+        // Write the updated content back to the file
+        if (file_put_contents($file, $newContent)) {
+            echo "<p style='color: green;'>✓ Fixed admin: $filename</p>";
+            $adminFixed++;
+        } else {
+            echo "<p style='color: red;'>✗ Failed to fix admin: $filename</p>";
+        }
+    }
+}
+
+if ($adminFixed > 0) {
+    echo "<p style='color: green;'>✓ Fixed $adminFixed admin files</p>";
+} else {
+    echo "<p style='color: blue;'>- No admin files needed fixing</p>";
+}
+
+echo "<div style='background: #e7f3ff; padding: 15px; border-radius: 5px; margin-top: 20px;'>";
+echo "<h4>🔧 Next Steps:</h4>";
+echo "<ol>";
+echo "<li>Test your barber dashboard: <a href='barber/dashboard.php' target='_blank'>barber/dashboard.php</a></li>";
+echo "<li>Test your admin dashboard: <a href='admin/dashboard.php' target='_blank'>admin/dashboard.php</a></li>";
+echo "<li>Run the email config setup: <a href='setup_email_config.php' target='_blank'>setup_email_config.php</a></li>";
+echo "<li><strong>Delete this fix_config_paths.php file</strong> after testing</li>";
+echo "</ol>";
+echo "</div>";
 ?>
 
 <style>
