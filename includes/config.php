@@ -1,9 +1,13 @@
 <?php
-// Database configuration for live hosting
-define('DB_HOST', 'localhost');
-define('DB_USER', 'shawacom_hassan'); // Your actual database username
-define('DB_PASS', 'Hes0o@981'); // Your actual database password
-define('DB_NAME', 'shawacom_Barber'); // Your actual database name
+require_once __DIR__ . '/../vendor/autoload.php';
+if (file_exists(__DIR__ . '/../.env')) {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+    $dotenv->load();
+}
+define('DB_HOST', $_ENV['DB_HOST'] ?? 'localhost');
+define('DB_USER', $_ENV['DB_USER'] ?? 'root');
+define('DB_PASS', $_ENV['DB_PASS'] ?? '');
+define('DB_NAME', $_ENV['DB_NAME'] ?? 'test_db');
 
 // Application configuration
 define('SITE_NAME', 'BladeX Barbershop');
