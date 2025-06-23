@@ -1,4 +1,7 @@
 <?php
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_secure', 1);
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -16,11 +19,6 @@ define('SITE_NAME', 'BladeX Barbershop');
 define('SITE_URL', 'https://customprojects.shawa.com.tr/barbershop');
 define('BASE_URL', ''); // Empty string for relative paths
 define('ADMIN_EMAIL', 'bladex@customprojects.shawa.com.tr'); // Your admin email
-
-// Session configuration
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', 1);
 
 // Error reporting - Set to 0 in production
 error_reporting(0);
