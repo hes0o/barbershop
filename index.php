@@ -15,5 +15,5 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // If not logged in, redirect to login page
-header('Location: ' . BASE_URL . '/login.php');
+header('Location: ' . BASE_URL . '/index.php');
 exit; 
