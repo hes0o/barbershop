@@ -7,7 +7,6 @@ ini_set('display_errors', 0);
 ob_start();
 
 try {
-    session_start();
     require_once __DIR__ . '/../includes/config.php';
     require_once __DIR__ . '/../includes/db.php';
 

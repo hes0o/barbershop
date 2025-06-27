@@ -1,5 +1,5 @@
 <?php
-session_start();
+// session_start(); // Removed - handled in config.php
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/error_handler.php';

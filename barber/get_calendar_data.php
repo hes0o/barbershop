@@ -13,8 +13,6 @@ try {
     // Set JSON content type
     header('Content-Type: application/json');
 
-    session_start();
-
     // Check if user is logged in and is a barber
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'barber') {
         throw new Exception('Unauthorized access');
