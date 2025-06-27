@@ -39,4 +39,9 @@ define('UPLOAD_DIR', __DIR__ . '/../uploads/');
 // Create uploads directory if it doesn't exist
 if (!file_exists(UPLOAD_DIR)) {
     mkdir(UPLOAD_DIR, 0755, true);
+}
+
+// Start session after all ini_set() calls
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 } 
