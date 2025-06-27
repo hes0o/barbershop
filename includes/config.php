@@ -12,7 +12,7 @@ if (file_exists(__DIR__ . '/../.env')) {
 define('DB_HOST', $_ENV['DB_HOST'] ?? 'localhost');
 define('DB_USER', $_ENV['DB_USER'] ?? 'root');
 define('DB_PASS', $_ENV['DB_PASS'] ?? '');
-define('DB_NAME', $_ENV['DB_NAME'] ?? 'test_db');
+define('DB_NAME', $_ENV['DB_NAME'] ?? 'barbershop_db');
 
 // Application configuration
 define('SITE_NAME', 'BladeX Barbershop');

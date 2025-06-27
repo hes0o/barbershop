@@ -45,79 +45,79 @@ foreach ($phpFiles as $file) {
     
     // Fix old config.php references - more comprehensive patterns
     $patterns = [
-        // Fix require_once __DIR__ . '/../config.php'
+        // Fix require_once __DIR__ . '/../includes/config.php'
         [
-            "require_once __DIR__ . '/../config.php'",
+            "require_once __DIR__ . '/../includes/config.php'",
             "require_once __DIR__ . '/../includes/config.php'"
         ],
-        // Fix require __DIR__ . '/../config.php'
+        // Fix require __DIR__ . '/../includes/config.php'
         [
-            "require __DIR__ . '/../config.php'",
+            "require __DIR__ . '/../includes/config.php'",
             "require __DIR__ . '/../includes/config.php'"
         ],
-        // Fix include __DIR__ . '/../config.php'
+        // Fix include __DIR__ . '/../includes/config.php'
         [
-            "include __DIR__ . '/../config.php'",
+            "include __DIR__ . '/../includes/config.php'",
             "include __DIR__ . '/../includes/config.php'"
         ],
-        // Fix require_once __DIR__ . '/config.php'
+        // Fix require_once __DIR__ . '/includes/config.php'
         [
-            "require_once __DIR__ . '/config.php'",
+            "require_once __DIR__ . '/includes/config.php'",
             "require_once __DIR__ . '/includes/config.php'"
         ],
-        // Fix require __DIR__ . '/config.php'
+        // Fix require __DIR__ . '/includes/config.php'
         [
-            "require __DIR__ . '/config.php'",
+            "require __DIR__ . '/includes/config.php'",
             "require __DIR__ . '/includes/config.php'"
         ],
-        // Fix include __DIR__ . '/config.php'
+        // Fix include __DIR__ . '/includes/config.php'
         [
-            "include __DIR__ . '/config.php'",
+            "include __DIR__ . '/includes/config.php'",
             "include __DIR__ . '/includes/config.php'"
         ],
-        // Fix require_once 'config.php'
+        // Fix require_once __DIR__ . '/includes/config.php'
         [
-            "require_once 'config.php'",
+            "require_once __DIR__ . '/includes/config.php'",
             "require_once __DIR__ . '/includes/config.php'"
         ],
-        // Fix require 'config.php'
+        // Fix require __DIR__ . '/includes/config.php'
         [
-            "require 'config.php'",
+            "require __DIR__ . '/includes/config.php'",
             "require __DIR__ . '/includes/config.php'"
         ],
-        // Fix include 'config.php'
+        // Fix include __DIR__ . '/includes/config.php'
         [
-            "include 'config.php'",
+            "include __DIR__ . '/includes/config.php'",
             "include __DIR__ . '/includes/config.php'"
         ],
-        // Fix require_once '../config.php'
+        // Fix require_once '../includes/config.php'
         [
-            "require_once '../config.php'",
+            "require_once '../includes/config.php'",
             "require_once '../includes/config.php'"
         ],
-        // Fix require '../config.php'
+        // Fix require '../includes/config.php'
         [
-            "require '../config.php'",
+            "require '../includes/config.php'",
             "require '../includes/config.php'"
         ],
-        // Fix include '../config.php'
+        // Fix include '../includes/config.php'
         [
-            "include '../config.php'",
+            "include '../includes/config.php'",
             "include '../includes/config.php'"
         ],
-        // Fix require_once './config.php'
+        // Fix require_once './includes/config.php'
         [
-            "require_once './config.php'",
+            "require_once './includes/config.php'",
             "require_once './includes/config.php'"
         ],
-        // Fix require './config.php'
+        // Fix require './includes/config.php'
         [
-            "require './config.php'",
+            "require './includes/config.php'",
             "require './includes/config.php'"
         ],
-        // Fix include './config.php'
+        // Fix include './includes/config.php'
         [
-            "include './config.php'",
+            "include './includes/config.php'",
             "include './includes/config.php'"
         ]
     ];

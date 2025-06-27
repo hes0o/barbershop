@@ -77,9 +77,9 @@ foreach ($phpFiles as $file) {
     $problems = [];
     
     // Check for old config.php references
-    if (strpos($content, "require_once __DIR__ . '/../config.php'") !== false ||
-        strpos($content, "require __DIR__ . '/../config.php'") !== false ||
-        strpos($content, "include __DIR__ . '/../config.php'") !== false) {
+    if (strpos($content, "require_once __DIR__ . '/../includes/config.php'") !== false ||
+        strpos($content, "require __DIR__ . '/../includes/config.php'") !== false ||
+        strpos($content, "include __DIR__ . '/../includes/config.php'") !== false) {
         $problems[] = "Old config.php path reference";
     }
     

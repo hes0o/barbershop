@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/includes/config.php';
 
 class Database {
     private $conn;
@@ -1573,7 +1573,7 @@ class Database {
 
             if ($result) {
                 // Log the activity
-                $this->logActivity($_SESSION['user_id'], 'delete_service', "Deleted service: {$service['name']} (${$service['price']}, {$service['duration']} min)");
+                $this->logActivity($_SESSION['user_id'], 'delete_service', "Deleted service: {$service['name']} ($${service['price']}, {$service['duration']} min)");
                 return ['success' => true, 'message' => 'Service deleted successfully'];
             }
             return ['success' => false, 'message' => 'Failed to delete service'];

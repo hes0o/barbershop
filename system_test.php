@@ -4,7 +4,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Include required files
-require_once 'config.php';
+require_once __DIR__ . '/includes/config.php';
 require_once 'includes/db.php';
 
 // Start session for testing

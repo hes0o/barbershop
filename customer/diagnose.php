@@ -5,7 +5,7 @@ ini_set('display_errors', 1);
 echo "<h2>Database Diagnostic Report</h2>";
 
 try {
-    require_once __DIR__ . '/../config.php';
+    require_once __DIR__ . '/../includes/config.php';
     require_once __DIR__ . '/../includes/db.php';
 
     echo "<h3>1. Database Connection Test</h3>";
