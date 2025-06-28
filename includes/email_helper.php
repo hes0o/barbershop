@@ -29,6 +29,45 @@ class EmailHelper {
     }
 
     /**
+     * Load a template file
+     * @param string $template_name Template name (without .html extension)
+     * @return string|false Template content or false on failure
+     */
+    public function loadTemplate($template_name) {
+        $template_path = __DIR__ . '/../email_templates/' . $template_name . '.html';
+        if (file_exists($template_path)) {
+            return file_get_contents($template_path);
+        }
+        return false;
+    }
+
+    /**
+     * Process a template with variables
+     * @param string $template_name Template name (without .html extension)
+     * @param array $variables Variables to replace in template
+     * @return string|false Processed template or false on failure
+     */
+    public function processTemplate($template_name, $variables) {
+        $base_template = $this->loadTemplate('base');
+        $content_template = $this->loadTemplate($template_name);
+        
+        if (!$base_template || !$content_template) {
+            return false;
+        }
+        
+        // Replace variables in content template
+        foreach ($variables as $key => $value) {
+            $content_template = str_replace('{{' . $key . '}}', $value, $content_template);
+        }
+        
+        // Replace subject and content in base template
+        $subject = $variables['subject'] ?? 'Email from BladeX Barbershop';
+        $html = str_replace(['{{subject}}', '{{content}}'], [$subject, $content_template], $base_template);
+        
+        return $html;
+    }
+
+    /**
      * Send an email
      * @param string $to Recipient email
      * @param string $subject Email subject
