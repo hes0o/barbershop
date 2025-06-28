@@ -30,8 +30,57 @@ class EmailService {
     
     /**
      * Send notification email to barber when customer books appointment
+     * (For testing with individual parameters)
      */
-    public function sendBarberNotification($appointment_id) {
+    public function sendBarberNotification($barber_email, $customer_name, $appointment_date, $appointment_time, $service_name, $customer_email, $customer_phone) {
+        try {
+            $vars = [
+                'subject' => 'New Appointment Request - BladeX',
+                'greeting' => 'Hello Barber,',
+                'appointment_date' => $appointment_date,
+                'appointment_time' => $appointment_time,
+                'service_name' => $service_name,
+                'customer_name' => $customer_name,
+                'customer_email' => $customer_email,
+                'customer_phone' => $customer_phone
+            ];
+            
+            $body = $this->loadTemplate('barber_notification.html', $vars);
+            return $this->emailHelper->send($barber_email, $vars['subject'], $body);
+        } catch (Exception $e) {
+            error_log("Error sending barber notification: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Send confirmation email to customer when barber approves appointment
+     * (For testing with individual parameters)
+     */
+    public function sendAppointmentConfirmation($customer_email, $customer_name, $appointment_date, $appointment_time, $service_name, $barber_name) {
+        try {
+            $vars = [
+                'subject' => 'Appointment Confirmed - BladeX',
+                'greeting' => 'Hello ' . $customer_name . ',',
+                'appointment_date' => $appointment_date,
+                'appointment_time' => $appointment_time,
+                'service_name' => $service_name,
+                'barber_name' => $barber_name
+            ];
+            
+            $body = $this->loadTemplate('appointment_confirmation.html', $vars);
+            return $this->emailHelper->send($customer_email, $vars['subject'], $body);
+        } catch (Exception $e) {
+            error_log("Error sending customer confirmation: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Send notification email to barber when customer books appointment
+     * (Original method with appointment_id)
+     */
+    public function sendBarberNotificationById($appointment_id) {
         try {
             $appointment = $this->db->getAppointmentById($appointment_id);
             if (!$appointment) {
@@ -70,8 +119,9 @@ class EmailService {
     
     /**
      * Send confirmation email to customer when barber approves appointment
+     * (Original method with appointment_id)
      */
-    public function sendCustomerConfirmation($appointment_id) {
+    public function sendCustomerConfirmationById($appointment_id) {
         try {
             $appointment = $this->db->getAppointmentById($appointment_id);
             if (!$appointment) {
