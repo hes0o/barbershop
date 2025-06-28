@@ -84,13 +84,33 @@ try {
     if (file_exists(__DIR__ . '/includes/email_config.php')) {
         echo "<div class='success'>✓ Email configuration file exists</div>";
         
-        // Test if we can load email config
-        $config = include __DIR__ . '/includes/email_config.php';
-        if (is_array($config) && !empty($config)) {
-            echo "<div class='success'>✓ Email configuration loaded</div>";
-            echo "<div class='info'>Found " . count($config) . " configuration settings</div>";
-        } else {
-            echo "<div class='error'>✗ Email configuration is empty</div>";
+        // Test if we can load email config safely
+        try {
+            $config = include __DIR__ . '/includes/email_config.php';
+            if (is_array($config) && !empty($config)) {
+                echo "<div class='success'>✓ Email configuration loaded</div>";
+                echo "<div class='info'>Found " . count($config) . " configuration settings</div>";
+                
+                // Check for required settings
+                $required_settings = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'from_email'];
+                $missing_settings = [];
+                
+                foreach ($required_settings as $setting) {
+                    if (!isset($config[$setting]) || empty($config[$setting])) {
+                        $missing_settings[] = $setting;
+                    }
+                }
+                
+                if (empty($missing_settings)) {
+                    echo "<div class='success'>✓ All required email settings are configured</div>";
+                } else {
+                    echo "<div class='error'>✗ Missing required settings: " . implode(', ', $missing_settings) . "</div>";
+                }
+            } else {
+                echo "<div class='error'>✗ Email configuration is empty</div>";
+            }
+        } catch (Exception $e) {
+            echo "<div class='error'>✗ Error loading email configuration: " . htmlspecialchars($e->getMessage()) . "</div>";
         }
     } else {
         echo "<div class='error'>✗ Email configuration file missing</div>";
