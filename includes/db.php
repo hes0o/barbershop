@@ -302,7 +302,7 @@ class Database {
             // Log the activity
             $this->logActivity($user_id, 'create_appointment', "Created appointment ID: $appointment_id for date: $date, time: $time");
             
-            return true;
+            return $appointment_id;
         } catch (Exception $e) {
             error_log("Error creating appointment: " . $e->getMessage());
             return false;
@@ -482,7 +482,8 @@ class Database {
         $stmt = $this->conn->prepare("
             SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, 
                    a.appointment_time, a.status, a.notes, a.created_at,
-                   u.first_name, u.last_name, s.name as service_name 
+                   u.first_name, u.last_name, u.email,
+                   s.name as service_name, s.price, s.duration
             FROM appointments a
             JOIN users u ON a.user_id = u.id
             JOIN services s ON a.service_id = s.id
@@ -494,7 +495,7 @@ class Database {
         $stmt->bind_result(
             $id, $user_id, $barber_id, $service_id, $appointment_date,
             $appointment_time, $status, $notes, $created_at,
-            $first_name, $last_name, $service_name
+            $first_name, $last_name, $email, $service_name, $price, $duration
         );
         
         if ($stmt->fetch()) {
@@ -510,7 +511,10 @@ class Database {
                 'created_at' => $created_at,
                 'first_name' => $first_name,
                 'last_name' => $last_name,
-                'service_name' => $service_name
+                'email' => $email,
+                'service_name' => $service_name,
+                'price' => $price,
+                'duration' => $duration
             ];
             $stmt->close();
             return $appointment;
@@ -1725,6 +1729,44 @@ class Database {
         } catch (Exception $e) {
             error_log("Error in testEmailConfig: " . $e->getMessage());
             return ['success' => false, 'message' => 'An error occurred while testing email configuration'];
+        }
+    }
+
+    /**
+     * Get appointments by specific date
+     */
+    public function getAppointmentsByDate($date) {
+        try {
+            $stmt = $this->conn->prepare("
+                SELECT a.id, a.user_id, a.barber_id, a.service_id, a.appointment_date, a.appointment_time, a.status, a.created_at,
+                       u.first_name, u.last_name, u.email,
+                       s.name as service_name, s.price, s.duration
+                FROM appointments a
+                JOIN users u ON a.user_id = u.id
+                JOIN services s ON a.service_id = s.id
+                WHERE a.appointment_date = ? AND a.status != 'cancelled'
+                ORDER BY a.appointment_time
+            ");
+            
+            if (!$stmt) {
+                error_log("Error preparing getAppointmentsByDate statement: " . $this->conn->error);
+                return [];
+            }
+            
+            $stmt->bind_param("s", $date);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $appointments = [];
+            
+            while ($row = $result->fetch_assoc()) {
+                $appointments[] = $row;
+            }
+            
+            $stmt->close();
+            return $appointments;
+        } catch (Exception $e) {
+            error_log("Error in getAppointmentsByDate: " . $e->getMessage());
+            return [];
         }
     }
 }

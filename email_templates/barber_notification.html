@@ -1,0 +1,28 @@
+{{greeting}}
+
+<p style="font-size: 1.1em;">
+  <span class="highlight">New Appointment Request</span>
+</p>
+
+<p>A customer has requested an appointment at <span class="highlight">BladeX</span>.</p>
+
+<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+  <h3 style="margin-top: 0; color: #007bff;">Appointment Details</h3>
+  <p>
+    <strong>Date:</strong> <span class="highlight">{{appointment_date}}</span><br>
+    <strong>Time:</strong> <span class="highlight">{{appointment_time}}</span><br>
+    <strong>Service:</strong> {{service_name}}<br>
+    <strong>Customer:</strong> {{customer_name}}<br>
+    <strong>Email:</strong> {{customer_email}}<br>
+    <strong>Phone:</strong> {{customer_phone}}
+  </p>
+</div>
+
+<div style="background: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
+  <p style="margin: 0;"><strong>Action Required:</strong><br>
+  Please review this appointment request and approve or reject it in your dashboard.</p>
+</div>
+
+<a href="https://www.customprojects.shawa.com.tr/barber/dashboard.php" class="button">Review Appointment</a>
+
+<p style="margin-top: 32px;">Thank you for your attention to this request.</p> 
