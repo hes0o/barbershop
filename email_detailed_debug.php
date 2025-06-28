@@ -57,7 +57,7 @@ try {
     $mail->setFrom($email_config['from_email'], $email_config['from_name']);
     
     // Add recipient (use a test email)
-    $test_email = 'test@example.com'; // Change this to your email
+    $test_email = 'hassanshawa30@gmail.com'; // Change this to your email
     $mail->addAddress($test_email);
     
     // Set email content
