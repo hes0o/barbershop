@@ -1,83 +1,29 @@
-# Barbershop Management System
+# ✂️ Barbershop Appointment System
 
-A web-based barbershop management system that allows customers to book appointments, barbers to manage their schedules, and administrators to oversee operations.
+> A full-stack scheduling and management platform for barbershops, allowing customers to book services and barbers to manage their availability.
 
-## Features
+---
 
-- User registration and authentication
-- Appointment booking system
-- Service management
-- Barber availability management
-- Admin dashboard
-- Customer dashboard
-- Responsive design
+### 🚀 Key Features
+* **Intelligent Booking Wizard:** A dynamic, multi-step booking process that filters available dates and time slots based on the selected barber's schedule and the service duration[cite: 16].
+* **Role-Based Access Control (RBAC):** Secure authentication system with distinct privileges for Customers, Barbers, and Administrators[cite: 15].
+* **Schedule Management:** Automated working hours mapping and schedule collision prevention to ensure time slots are accurately tracked[cite: 16, 18].
+* **Appointment Tracking:** A dedicated dashboard for users to view, sort, and manage their upcoming and past appointments[cite: 14].
 
-## Requirements
+---
 
-- PHP 7.4 or higher
-- MySQL 5.7 or higher
-- Web server (Apache/Nginx)
-- Composer (for dependency management)
+### 🛠️ Tech Stack & Architecture
+* **Backend:** PHP with session-based authentication[cite: 14, 15, 16].
+* **Database:** MySQL / MariaDB with structured foreign key constraints for data integrity.
+* **Frontend:** HTML5, CSS3, JavaScript, and Bootstrap 5[cite: 14, 15, 16].
+* **Package Management:** Composer[cite: 19, 20].
+* **Dependencies:** `vlucas/phpdotenv` for secure environment variable management and `phpmailer/phpmailer` for email notifications[cite: 19].
 
-## Installation
+---
 
-1. Clone the repository:
+### ⚙️ Quickstart (Local Development)
+
+#### 1. Clone the Repository
 ```bash
-git clone [repository-url]
+git clone [https://github.com/hes0o/barbershop.git](https://github.com/hes0o/barbershop.git)
 cd barbershop
-```
-
-2. Create a `.env` file in the root directory and configure your environment variables:
-```env
-DB_HOST=localhost
-DB_USER=your_database_user
-DB_PASS=your_database_password
-DB_NAME=your_database_name
-BASE_URL=your_base_url
-```
-
-3. Import the database schema:
-```bash
-mysql -u your_username -p your_database_name < sql/schema.sql
-```
-
-4. Configure your web server to point to the project directory
-
-5. Set proper permissions:
-```bash
-chmod 755 -R .
-chmod 777 -R uploads/ # if you have an uploads directory
-```
-
-## Security Considerations
-
-- All passwords are hashed using PHP's password_hash()
-- SQL injection prevention using prepared statements
-- XSS protection through proper output escaping
-- CSRF protection implemented
-- Secure session handling
-- Input validation and sanitization
-
-## Default Credentials
-
-For security reasons, please change these credentials after first login:
-
-- Admin:
-  - Username: admin
-  - Password: admin123
-
-- Barber:
-  - Username: barber
-  - Password: barber123
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
